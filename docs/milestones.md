@@ -12,7 +12,7 @@ WXT 的具体 API 名称和命令以动手时的官方文档（wxt.dev）为准�
 
 做完 M1 就可以在 Chrome 里自用。
 
-- [ ] **M1.1 脚手架跑起来**（1h）
+- [x] **M1.1 脚手架跑起来**（1h）
   - 做：用 WXT 的 React 模板初始化项目；`git init`；加 MIT `LICENSE`；启动开发模式，在 Chrome 里看到模板自带的 popup
   - 验收：改一行 popup 文案，浏览器里自动更新
   - 留意：弄清 `entrypoints/` 下每个文件对应扩展的哪一部分（content script / background / popup），后面全靠这个约定
