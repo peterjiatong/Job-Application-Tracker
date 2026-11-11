@@ -21,7 +21,7 @@ WXT 的具体 API 名称和命令以动手时的官方文档（wxt.dev）为准�
   - 做：`lib/types.ts` 写 `JobRecord` 类型（字段见需求文档 1.7）；`lib/ats.ts` 里先写 `normalizeUrl(url)`：去掉 `utm_*`、`gh_src`、`source`、`lever-source` 等追踪参数和 `#` 片段；配好 Vitest
   - 验收：`pnpm test` 通过，至少覆盖"带追踪参数""不带参数""非法 URL 不抛异常"三种情况
 
-- [ ] **M1.3 解析器：Greenhouse 和 Lever**（1.5h）
+- [x] **M1.3 解析器：Greenhouse 和 Lever**（1.5h）
   - 做：实现 `parseJobUrl(url)`，返回 `{ ats, company, jobId }` 或 `null`。结构做成"每个 ATS 一条规则"的表，先只填这两家
   - 验收：每家至少 4 个**从浏览器里复制的真实 URL** 做测试样例：普通岗位页、带追踪参数、带 `/apply` 后缀、岗位列表页（应返回 `null`）
   - 留意：Greenhouse 有新旧两个域名和一个嵌入页格式，三种都要有样例
