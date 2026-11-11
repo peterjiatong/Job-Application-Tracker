@@ -14,3 +14,8 @@ export type JobRecord = {
     flags: string[];
     source: 'auto' | 'manual';
 };
+
+
+export type Settings = {
+    mode: 'auto' | 'manual';
+};
