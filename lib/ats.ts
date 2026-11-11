@@ -51,7 +51,23 @@ const parseGreenhouse: Parser = (url) => {
     return null;
 };
 
-const PARSERS: Parser[] = [parseGreenhouse];
+
+const UUID = /^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+
+const parseLever: Parser = (url) => {
+    if (!/^jobs(\.eu)?\.lever\.co$/.test(url.hostname)) {
+        return null;
+    }
+
+    // /acme/1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d, optionally followed by /apply
+    const [company, jobId] = url.pathname.split('/').filter(Boolean);
+    if (company && jobId && UUID.test(jobId)) {
+        return { ats: 'lever', company, jobId: jobId.toLowerCase() };
+    }
+    return null;
+};
+
+const PARSERS: Parser[] = [parseGreenhouse, parseLever];
 
 export function parseJobUrl(input: string): ParsedJob | null {
     let url: URL;
