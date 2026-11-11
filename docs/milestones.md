@@ -31,7 +31,7 @@ WXT 的具体 API 名称和命令以动手时的官方文档（wxt.dev）为准�
   - 验收：每家至少 4 个真实 URL 样例，全部通过；同一岗位的不同 URL 变体解析出相同的 `(ats, company, jobId)`
   - 留意：Workday 最麻烦。路径里有可选的语言段（如 `/en-US/`），岗位 ID 在最后一段的 `_` 之后，申请流程中 URL 还会追加 `/apply/...`。多找几家公司的链接对比
 
-- [ ] **M1.5 存储封装**（1h）
+- [x] **M1.5 存储封装**（1h）
   - 做：在 `lib/types.ts` 里补上 `Settings` 类型；`lib/store.ts`：`getJob(key)`、`saveJob(record)`、`deleteJob(key)`、`listJobs()`、`getSettings()`、`saveSettings()`。每条记录单独一个存储 key（`job:<key>`），设置放在 `settings`，带默认值
   - 验收：在扩展后台的开发者工具控制台里手动调用，能写入、读出、删除；`listJobs()` 不会把 `settings` 当成记录返回
 
