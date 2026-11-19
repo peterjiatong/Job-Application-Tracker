@@ -35,7 +35,7 @@ WXT 的具体 API 名称和命令以动手时的官方文档（wxt.dev）为准�
   - 做：在 `lib/types.ts` 里补上 `Settings` 类型；`lib/store.ts`：`getJob(key)`、`saveJob(record)`、`deleteJob(key)`、`listJobs()`、`getSettings()`、`saveSettings()`。每条记录单独一个存储 key（`job:<key>`），设置放在 `settings`，带默认值
   - 验收：在扩展后台的开发者工具控制台里手动调用，能写入、读出、删除；`listJobs()` 不会把 `settings` 当成记录返回
 
-- [ ] **M1.6 内容脚本最小闭环**（1h）
+- [x] **M1.6 内容脚本最小闭环**（1h）
   - 做：内容脚本只匹配七家 ATS 的域名；页面加载后解析当前 URL，解析成功就写入一条 `viewed` 记录，失败就什么都不做。此时还没有任何界面
   - 验收：打开一个真实的 Greenhouse 岗位页，在开发者工具的扩展存储里能看到这条记录；打开岗位列表页不产生记录
   - 留意：检查生成的 manifest，确认主机权限只有这七家的域名
