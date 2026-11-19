@@ -19,7 +19,9 @@ export default defineContentScript({
   ],
   async main() {
     // Temporary: hard-coded toast for M1.7. Real content comes in M1.8.
-    showToast({ title: 'Job Application Tracker', body: 'This is a test toast.' });
+    void pageSettled().then(() =>
+      showToast({ title: 'Job Application Tracker', body: 'This is a test toast.' }),
+    );
 
     const job = parseJobUrl(location.href);
     if (!job) return;
@@ -41,3 +43,15 @@ export default defineContentScript({
     console.log('[JAT] saved:', key);
   },
 });
+
+// Pages that React renders on the server (Greenhouse) rebuild their whole document if the DOM
+// changes before React has started up. So wait for the page to load, then a little longer,
+// before adding anything to it.
+// ponytail: fixed delay, because extensions get no "React is ready" signal. A toast survives a
+// rebuild anyway (see lib/toast.ts); this only avoids causing one.
+async function pageSettled(): Promise<void> {
+  if (document.readyState !== 'complete') {
+    await new Promise((resolve) => window.addEventListener('load', resolve, { once: true }));
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500));
+}
