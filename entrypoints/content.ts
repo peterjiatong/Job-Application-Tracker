@@ -1,5 +1,6 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
 import { getJob, saveJob } from '@/lib/store';
+import { showToast } from '@/lib/toast';
 
 export default defineContentScript({
   matches: [
@@ -17,6 +18,9 @@ export default defineContentScript({
     'https://*.myworkdaysite.com/*',
   ],
   async main() {
+    // Temporary: hard-coded toast for M1.7. Real content comes in M1.8.
+    showToast({ title: 'Job Application Tracker', body: 'This is a test toast.' });
+
     const job = parseJobUrl(location.href);
     if (!job) return;
 
