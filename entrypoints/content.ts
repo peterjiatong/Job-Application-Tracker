@@ -1,4 +1,5 @@
-import { parseJobUrl } from '@/lib/ats';
+import { normalizeUrl, parseJobUrl } from '@/lib/ats';
+import { getJob, saveJob } from '@/lib/store';
 
 export default defineContentScript({
   matches: [
@@ -15,7 +16,24 @@ export default defineContentScript({
     'https://*.myworkdayjobs.com/*',
     'https://*.myworkdaysite.com/*',
   ],
-  main() {
-    console.log('[JAT] parsed:', parseJobUrl(location.href));
+  async main() {
+    const job = parseJobUrl(location.href);
+    if (!job) return;
+
+    const key = `${job.ats}:${job.company}:${job.jobId}`;
+    if (await getJob(key)) return;
+
+    const now = Date.now();
+    await saveJob({
+      ...job,
+      key,
+      url: normalizeUrl(location.href) ?? location.href,
+      status: 'viewed',
+      firstSeenAt: now,
+      lastSeenAt: now,
+      flags: [],
+      source: 'auto',
+    });
+    console.log('[JAT] saved:', key);
   },
 });
