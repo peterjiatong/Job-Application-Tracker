@@ -36,11 +36,39 @@ const CSS = `
 .close:hover {
     color: #1f2328;
 }
+.actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+}
+.action {
+    padding: 4px 10px;
+    border: 1px solid #d0d7de;
+    border-radius: 6px;
+    background: #f6f8fa;
+    color: #1f2328;
+    font: inherit;
+    cursor: pointer;
+}
+.action:hover {
+    background: #eaeef2;
+}
+.action:focus-visible,
+.close:focus-visible {
+    outline: 2px solid #0969da;
+    outline-offset: 2px;
+}
 `;
+
+export type ToastAction = {
+    label: string;
+    onClick: () => void;
+};
 
 export type ToastOptions = {
     title: string;
     body: string;
+    actions?: ToastAction[];
 };
 
 function el(tag: string, className: string, text = ''): HTMLElement {
@@ -53,7 +81,7 @@ function el(tag: string, className: string, text = ''): HTMLElement {
 
 let dismissCurrent: (() => void) | undefined;
 
-export function showToast({ title, body }: ToastOptions): void {
+export function showToast({ title, body, actions = [] }: ToastOptions): void {
     // At most one toast per page.
     dismissCurrent?.();
 
@@ -86,6 +114,20 @@ export function showToast({ title, body }: ToastOptions): void {
     const toast = el('div', 'toast');
     toast.setAttribute('role', 'status');
     toast.append(header, el('div', 'body', body));
+
+    if (actions.length > 0) {
+        const row = el('div', 'actions');
+        for (const action of actions) {
+            const button = el('button', 'action', action.label);
+            // Every action also closes the toast.
+            button.addEventListener('click', () => {
+                dismiss();
+                action.onClick();
+            });
+            row.append(button);
+        }
+        toast.append(row);
+    }
 
     host.attachShadow({ mode: 'open' }).append(el('style', '', CSS), toast);
     document.documentElement.append(host);

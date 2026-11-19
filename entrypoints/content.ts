@@ -20,7 +20,14 @@ export default defineContentScript({
   async main() {
     // Temporary: hard-coded toast for M1.7. Real content comes in M1.8.
     void pageSettled().then(() =>
-      showToast({ title: 'Job Application Tracker', body: 'This is a test toast.' }),
+      showToast({
+        title: 'Job Application Tracker',
+        body: 'This is a test toast.',
+        actions: [
+          { label: 'Undo', onClick: () => console.log('[JAT] clicked Undo') },
+          { label: 'Mark as applied', onClick: () => console.log('[JAT] clicked Mark as applied') },
+        ],
+      }),
     );
 
     const job = parseJobUrl(location.href);
