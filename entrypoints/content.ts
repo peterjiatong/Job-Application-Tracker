@@ -1,5 +1,5 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
-import { getJob, saveJob } from '@/lib/store';
+import { deleteJob, getJob, saveJob } from '@/lib/store';
 import { showToast } from '@/lib/toast';
 
 export default defineContentScript({
@@ -18,18 +18,6 @@ export default defineContentScript({
     'https://*.myworkdaysite.com/*',
   ],
   async main() {
-    // Temporary: hard-coded toast for M1.7. Real content comes in M1.8.
-    void pageSettled().then(() =>
-      showToast({
-        title: 'Job Application Tracker',
-        body: 'This is a test toast.',
-        actions: [
-          { label: 'Undo', onClick: () => console.log('[JAT] clicked Undo') },
-          { label: 'Mark as applied', onClick: () => console.log('[JAT] clicked Mark as applied') },
-        ],
-      }),
-    );
-
     const job = parseJobUrl(location.href);
     if (!job) return;
 
@@ -47,7 +35,13 @@ export default defineContentScript({
       flags: [],
       source: 'auto',
     });
-    console.log('[JAT] saved:', key);
+
+    await pageSettled();
+    showToast({
+      title: 'Job recorded',
+      body: 'Saved as viewed.',
+      actions: [{ label: 'Undo', onClick: () => void deleteJob(key) }],
+    });
   },
 });
 
