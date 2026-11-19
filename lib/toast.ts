@@ -1,5 +1,3 @@
-const HOST_ID = 'jat-toast';
-
 const CSS = `
 .toast {
     box-sizing: border-box;
@@ -53,19 +51,34 @@ function el(tag: string, className: string, text = ''): HTMLElement {
     return node;
 }
 
+let dismissCurrent: (() => void) | undefined;
+
 export function showToast({ title, body }: ToastOptions): void {
     // At most one toast per page.
-    document.getElementById(HOST_ID)?.remove();
+    dismissCurrent?.();
 
     const host = document.createElement('div');
-    host.id = HOST_ID;
+    host.id = 'jat-toast';
     // Inline style, so the page's own CSS rules for <div> cannot move or hide the host.
     host.style.cssText =
         'all: initial; position: fixed; top: 16px; right: 16px; z-index: 2147483647;';
 
     const close = el('button', 'close', '×');
     close.setAttribute('aria-label', 'Close');
-    close.addEventListener('click', () => host.remove());
+
+    // Some pages (Greenhouse: Remix/React) replace the whole <html> element while starting up,
+    // which throws the toast away with it. Put it back when that happens.
+    const keeper = new MutationObserver(() => {
+        if (!host.isConnected) document.documentElement.append(host);
+    });
+    keeper.observe(document, { childList: true });
+
+    const dismiss = () => {
+        keeper.disconnect();
+        host.remove();
+    };
+    dismissCurrent = dismiss;
+    close.addEventListener('click', dismiss);
 
     const header = el('div', 'header');
     header.append(el('div', 'title', title), close);
