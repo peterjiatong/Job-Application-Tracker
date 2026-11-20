@@ -1,5 +1,5 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
-import { deleteJob, getJob, saveJob } from '@/lib/store';
+import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
 
@@ -32,6 +32,7 @@ export default defineContentScript({
       return;
     }
 
+    const { mode } = await getSettings();
     const now = Date.now();
     const record: JobRecord = {
       ...job,
@@ -41,14 +42,36 @@ export default defineContentScript({
       firstSeenAt: now,
       lastSeenAt: now,
       flags: [],
-      source: 'auto',
+      source: mode,
     };
-    await saveJob(record);
 
+    if (mode === 'manual') {
+      await pageSettled();
+      showAskToast(record);
+      return;
+    }
+
+    await saveJob(record);
     await pageSettled();
     showViewedToast(record);
   },
 });
+
+// Manual mode, first visit: nothing is saved until the user clicks Record.
+function showAskToast(record: JobRecord): void {
+  showToast({
+    title: 'Record this job?',
+    body: 'It is not in your tracker yet.',
+    actions: [
+      {
+        label: 'Record',
+        onClick: () => void saveJob(record).then(() => showViewedToast(record)),
+      },
+      // Ignore saves nothing, so the question comes back on the next visit.
+      { label: 'Ignore', onClick: () => {} },
+    ],
+  });
+}
 
 // First visit: the job was just recorded.
 function showViewedToast(record: JobRecord): void {
