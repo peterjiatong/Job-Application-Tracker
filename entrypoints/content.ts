@@ -23,7 +23,14 @@ export default defineContentScript({
     if (!job) return;
 
     const key = `${job.ats}:${job.company}:${job.jobId}`;
-    if (await getJob(key)) return;
+    const existing = await getJob(key);
+    if (existing) {
+      const seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
+      await saveJob(seen);
+      await pageSettled();
+      showSeenToast(seen);
+      return;
+    }
 
     const now = Date.now();
     const record: JobRecord = {
@@ -43,30 +50,61 @@ export default defineContentScript({
   },
 });
 
+// First visit: the job was just recorded.
 function showViewedToast(record: JobRecord): void {
   showToast({
     title: 'Job recorded',
     body: 'Saved as viewed.',
     actions: [
       { label: 'Undo', onClick: () => void deleteJob(record.key) },
-      { label: 'Mark as applied', onClick: () => void markApplied(record) },
+      { label: 'Mark as applied', onClick: () => void markApplied(record, showViewedToast) },
     ],
   });
 }
 
-async function markApplied(record: JobRecord): Promise<void> {
+// Repeat visit: the job was already in storage.
+function showSeenToast(record: JobRecord): void {
+  if (record.status === 'applied') {
+    showToast({
+      title: 'You applied to this job',
+      body: `Applied on ${formatDate(record.appliedAt ?? record.firstSeenAt)}.`,
+    });
+    return;
+  }
+  showToast({
+    title: "You've seen this job",
+    body: `First viewed on ${formatDate(record.firstSeenAt)}.`,
+    actions: [
+      { label: 'Mark as applied', onClick: () => void markApplied(record, showSeenToast) },
+    ],
+  });
+}
+
+// `showPrevious` is the toast to go back to when the user clicks Undo.
+async function markApplied(
+  record: JobRecord,
+  showPrevious: (record: JobRecord) => void,
+): Promise<void> {
   await saveJob({ ...record, status: 'applied', appliedAt: Date.now() });
   showToast({
     title: 'Marked as applied',
     body: 'Saved as applied.',
-    // `record` is still the viewed version, so saving it again undoes the change.
-    actions: [{ label: 'Undo', onClick: () => void unmarkApplied(record) }],
+    actions: [
+      {
+        label: 'Undo',
+        // `record` is still the viewed version, so saving it again undoes the change.
+        onClick: () => void saveJob(record).then(() => showPrevious(record)),
+      },
+    ],
   });
 }
 
-async function unmarkApplied(record: JobRecord): Promise<void> {
-  await saveJob(record);
-  showViewedToast(record);
+function formatDate(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 // Pages that React renders on the server (Greenhouse) rebuild their whole document if the DOM
