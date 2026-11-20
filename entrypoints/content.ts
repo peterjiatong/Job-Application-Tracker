@@ -19,6 +19,7 @@ export default defineContentScript({
     'https://*.myworkdaysite.com/*',
   ],
   main(ctx) {
+    currentKey = previousPageKey();
     let handledUrl = location.href;
     void handlePage(handledUrl);
 
@@ -37,34 +38,60 @@ export default defineContentScript({
   },
 });
 
+const SESSION_KEY = 'jat:currentJob';
+
 // Key of the job on the page being shown. It tells "another page of the same job" apart from
 // "a different job", and lets a slow run notice that the user has already moved on.
 let currentKey: string | null = null;
 
+function setCurrentKey(key: string | null): void {
+  currentKey = key;
+  // Also leave it for the next page in this tab. sessionStorage belongs to one tab and one site
+  // and survives page loads, so sites that load a new page for every step are covered too.
+  try {
+    if (key) sessionStorage.setItem(SESSION_KEY, key);
+    else sessionStorage.removeItem(SESSION_KEY);
+  } catch {
+    // The site blocks storage. That only costs the memory across page loads.
+  }
+}
+
+// The job that the previous page in this tab was showing, if we came straight from that page.
+function previousPageKey(): string | null {
+  try {
+    // A referrer from another site means the tab was somewhere else in between (for example back
+    // on a job board), so this is a new visit and the reminder should show.
+    if (new URL(document.referrer).origin !== location.origin) return null;
+    return sessionStorage.getItem(SESSION_KEY);
+  } catch {
+    return null; // No referrer, or the site blocks storage.
+  }
+}
+
 async function handlePage(url: string): Promise<void> {
   const job = parseJobUrl(url);
   if (!job) {
-    currentKey = null;
+    setCurrentKey(null);
     dismissToast();
     return;
   }
 
   const key = `${job.ats}:${job.company}:${job.jobId}`;
+  // sameJob: another page of the job we were already on, e.g. the next step of an application.
   const sameJob = key === currentKey;
-  currentKey = key;
+  setCurrentKey(key);
+  if (!sameJob) dismissToast();
+
   const existing = await getJob(key);
-
-  if (sameJob) {
-    // Another page of the same job, e.g. the next step of an application form.
-    // Keep offering "Mark as applied" while the job is only viewed; once applied, stay quiet.
-    if (existing?.status === 'applied') dismissToast();
-    else if (existing && !isToastOpen()) showSeenToast(existing);
-    return;
-  }
-
-  dismissToast();
-
   if (existing) {
+    // On later pages of the same job, keep offering "Mark as applied" while the job is only
+    // viewed. Once it is applied, stay quiet.
+    if (sameJob && existing.status === 'applied') {
+      dismissToast();
+      return;
+    }
+    if (sameJob && isToastOpen()) return;
+
     const seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
     await saveJob(seen);
     await pageSettled();
@@ -78,6 +105,10 @@ async function handlePage(url: string): Promise<void> {
   }
 
   const { mode } = await getSettings();
+  // Same job but no record. In auto mode that means the user clicked Undo: leave it alone.
+  // In manual mode, ask again unless the question is still on screen.
+  if (sameJob && (mode === 'auto' || isToastOpen())) return;
+
   const now = Date.now();
   const record: JobRecord = {
     ...job,
