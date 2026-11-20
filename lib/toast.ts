@@ -81,6 +81,14 @@ function el(tag: string, className: string, text = ''): HTMLElement {
 
 let dismissCurrent: (() => void) | undefined;
 
+export function dismissToast(): void {
+    dismissCurrent?.();
+}
+
+export function isToastOpen(): boolean {
+    return dismissCurrent !== undefined;
+}
+
 export function showToast({ title, body, actions = [] }: ToastOptions): void {
     // At most one toast per page.
     dismissCurrent?.();
@@ -104,6 +112,7 @@ export function showToast({ title, body, actions = [] }: ToastOptions): void {
     const dismiss = () => {
         keeper.disconnect();
         host.remove();
+        if (dismissCurrent === dismiss) dismissCurrent = undefined;
     };
     dismissCurrent = dismiss;
     close.addEventListener('click', dismiss);

@@ -1,6 +1,6 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
-import { showToast } from '@/lib/toast';
+import { dismissToast, isToastOpen, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
 
 export default defineContentScript({
@@ -18,44 +18,88 @@ export default defineContentScript({
     'https://*.myworkdayjobs.com/*',
     'https://*.myworkdaysite.com/*',
   ],
-  async main() {
-    const job = parseJobUrl(location.href);
-    if (!job) return;
+  main(ctx) {
+    let handledUrl = location.href;
+    void handlePage(handledUrl);
 
-    const key = `${job.ats}:${job.company}:${job.jobId}`;
-    const existing = await getJob(key);
-    if (existing) {
-      const seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
-      await saveJob(seen);
-      await pageSettled();
-      showSeenToast(seen);
-      return;
-    }
-
-    const { mode } = await getSettings();
-    const now = Date.now();
-    const record: JobRecord = {
-      ...job,
-      key,
-      url: normalizeUrl(location.href) ?? location.href,
-      status: 'viewed',
-      firstSeenAt: now,
-      lastSeenAt: now,
-      flags: [],
-      source: mode,
-    };
-
-    if (mode === 'manual') {
-      await pageSettled();
-      showAskToast(record);
-      return;
-    }
-
-    await saveJob(record);
-    await pageSettled();
-    showViewedToast(record);
+    // Single-page apps (Workday) switch pages by changing the URL without loading a new document,
+    // so this script does not start again. WXT reports URL changes as an event.
+    ctx.addEventListener(window, 'wxt:locationchange', () => {
+      // The event also fires when the browser is about to leave for a new document. In that case
+      // the URL of this document never changes, and the script on the new page handles it.
+      // So wait a moment and only react if this document's own URL really changed.
+      ctx.setTimeout(() => {
+        if (location.href === handledUrl) return;
+        handledUrl = location.href;
+        void handlePage(handledUrl);
+      }, 0);
+    });
   },
 });
+
+// Key of the job on the page being shown. It tells "another page of the same job" apart from
+// "a different job", and lets a slow run notice that the user has already moved on.
+let currentKey: string | null = null;
+
+async function handlePage(url: string): Promise<void> {
+  const job = parseJobUrl(url);
+  if (!job) {
+    currentKey = null;
+    dismissToast();
+    return;
+  }
+
+  const key = `${job.ats}:${job.company}:${job.jobId}`;
+  const sameJob = key === currentKey;
+  currentKey = key;
+  const existing = await getJob(key);
+
+  if (sameJob) {
+    // Another page of the same job, e.g. the next step of an application form.
+    // Keep offering "Mark as applied" while the job is only viewed; once applied, stay quiet.
+    if (existing?.status === 'applied') dismissToast();
+    else if (existing && !isToastOpen()) showSeenToast(existing);
+    return;
+  }
+
+  dismissToast();
+
+  if (existing) {
+    const seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
+    await saveJob(seen);
+    await pageSettled();
+    if (currentKey !== key) return;
+    // Some sites (Ashby) change the URL in place and then load the page again, so this code runs
+    // twice within a moment. A job recorded seconds ago is still a first visit to the user.
+    const justRecorded = seen.status === 'viewed' && seen.lastSeenAt - seen.firstSeenAt < 10_000;
+    if (justRecorded) showViewedToast(seen);
+    else showSeenToast(seen);
+    return;
+  }
+
+  const { mode } = await getSettings();
+  const now = Date.now();
+  const record: JobRecord = {
+    ...job,
+    key,
+    url: normalizeUrl(url) ?? url,
+    status: 'viewed',
+    firstSeenAt: now,
+    lastSeenAt: now,
+    flags: [],
+    source: mode,
+  };
+
+  if (mode === 'manual') {
+    await pageSettled();
+    if (currentKey === key) showAskToast(record);
+    return;
+  }
+
+  await saveJob(record);
+  await pageSettled();
+  if (currentKey === key) showViewedToast(record);
+}
 
 // Manual mode, first visit: nothing is saved until the user clicks Record.
 function showAskToast(record: JobRecord): void {
