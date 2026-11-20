@@ -52,8 +52,8 @@ The extension is not in the Chrome Web Store or on Firefox Add-ons yet. For now 
 You need [Node.js](https://nodejs.org) 22 or newer and [pnpm](https://pnpm.io).
 
 ```sh
-git clone <the address of this repository>
-cd <the folder it created>
+git clone https://github.com/peterjiatong/Job-Application-Tracker.git
+cd Job-Application-Tracker
 pnpm install
 pnpm release
 ```

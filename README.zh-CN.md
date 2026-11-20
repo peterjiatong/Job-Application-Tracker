@@ -52,8 +52,8 @@
 需要 [Node.js](https://nodejs.org) 22 或更高版本，以及 [pnpm](https://pnpm.io)。
 
 ```sh
-git clone <这个仓库的地址>
-cd <生成的文件夹>
+git clone https://github.com/peterjiatong/Job-Application-Tracker.git
+cd Job-Application-Tracker
 pnpm install
 pnpm release
 ```
