@@ -1,6 +1,6 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
-import { DEFAULT_RULES, scan } from '@/lib/keywords';
+import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { dismissToast, isToastOpen, setToastWarnings, showToast } from '@/lib/toast';
@@ -236,6 +236,9 @@ async function showJob(
 // Scans the job description for restrictive wording, shows what it finds in the toast, and
 // stores the categories in the record's `flags`.
 async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promise<void> {
+  const { keywordsEnabled, rules } = await getSettings();
+  if (!keywordsEnabled) return;
+
   // After an in-page move on Workday, the previous job's text stays on screen for a moment.
   if (!fresh && job.ats === 'workday') {
     await waitFor(() => readWorkdayTitle(document, job.jobId), 5000);
@@ -243,7 +246,7 @@ async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promis
   await pageQuiet(document, 1000, 8000);
   if (currentKey !== key) return;
 
-  const hits = scan(pageText(document), DEFAULT_RULES);
+  const hits = scan(pageText(document), rules);
   pageFlags = [...new Set(hits.map((hit) => hit.category))];
   setToastWarnings(hits);
 

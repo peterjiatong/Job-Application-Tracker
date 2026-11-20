@@ -16,7 +16,11 @@ export type JobRecord = {
 };
 
 export type Settings = {
+    // auto: record a job as soon as it is opened. manual: ask first.
     mode: 'auto' | 'manual';
+    // Whether job descriptions are scanned for restrictive wording.
+    keywordsEnabled: boolean;
+    rules: KeywordRule[];
 };
 
 // One keyword rule. `pattern` is a regular expression, kept as text so it can be stored in

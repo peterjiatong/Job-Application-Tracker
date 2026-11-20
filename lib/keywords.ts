@@ -108,3 +108,15 @@ export function scan(input: string, rules: KeywordRule[]): KeywordHit[] {
     }
     return hits;
 }
+
+// Why a rule cannot be used, in words for the settings page, or null if it is fine.
+export function ruleError(rule: KeywordRule): string | null {
+    if (!rule.category.trim()) return 'Give the rule a category.';
+    if (!rule.pattern) return 'Give the rule a pattern.';
+    try {
+        new RegExp(rule.pattern, 'gi');
+        return null;
+    } catch (error) {
+        return `Not a valid pattern: ${(error as Error).message}`;
+    }
+}

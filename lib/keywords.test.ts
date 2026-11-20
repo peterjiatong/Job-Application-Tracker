@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_RULES, scan } from './keywords';
+import { DEFAULT_RULES, ruleError, scan } from './keywords';
 
 const categories = (text: string) => [...new Set(scan(text, DEFAULT_RULES).map((hit) => hit.category))];
 
@@ -99,3 +99,16 @@ describe('scan', () => {
     expect(scan('security clearance', [])).toEqual([]);
   });
 });
+
+describe('ruleError', () => {
+  it('accepts every built-in rule', () => {
+    expect(DEFAULT_RULES.map(ruleError).filter(Boolean)).toEqual([]);
+  });
+
+  it('explains what is wrong with a rule', () => {
+    expect(ruleError({ category: ' ', pattern: 'x' })).toMatch(/category/);
+    expect(ruleError({ category: 'Test', pattern: '' })).toMatch(/pattern/);
+    expect(ruleError({ category: 'Test', pattern: '(' })).toMatch(/Not a valid pattern/);
+  });
+});
+

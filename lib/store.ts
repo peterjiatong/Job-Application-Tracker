@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import { DEFAULT_RULES } from './keywords';
 import type { JobRecord, Settings } from './types';
 
 const JOB_PREFIX = 'job:';
@@ -25,7 +26,7 @@ export async function listJobs(): Promise<JobRecord[]> {
 }
 
 const SETTINGS_KEY = 'settings';
-const DEFAULT_SETTINGS: Settings = { mode: 'auto' };
+const DEFAULT_SETTINGS: Settings = { mode: 'auto', keywordsEnabled: true, rules: DEFAULT_RULES };
 
 export async function getSettings(): Promise<Settings> {
     const result = await browser.storage.local.get(SETTINGS_KEY);
@@ -33,5 +34,9 @@ export async function getSettings(): Promise<Settings> {
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
-    await browser.storage.local.set({ [SETTINGS_KEY]: settings });
+    // Rules that equal the built-in ones are not stored. That way better defaults in a later
+    // version reach everyone who never edited the rules.
+    const { rules, ...rest } = settings;
+    const customRules = JSON.stringify(rules) !== JSON.stringify(DEFAULT_RULES);
+    await browser.storage.local.set({ [SETTINGS_KEY]: customRules ? settings : rest });
 }
