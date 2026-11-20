@@ -1,5 +1,5 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
-import { readJobInfo } from '@/lib/page';
+import { readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { dismissToast, isToastOpen, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
@@ -97,9 +97,9 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
 
     await pageSettled();
     if (currentKey !== key) return;
-    let seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
-    if (fresh) seen = withPageInfo(seen);
+    const seen = await withPageInfo({ ...existing, lastSeenAt: Date.now() }, fresh);
     await saveJob(seen);
+    if (currentKey !== key) return;
     // Some sites (Ashby) change the URL in place and then load the page again, so this code runs
     // twice within a moment. A job recorded seconds ago is still a first visit to the user.
     const justRecorded = seen.status === 'viewed' && seen.lastSeenAt - seen.firstSeenAt < 10_000;
@@ -127,7 +127,9 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
 
   if (mode === 'manual') {
     await pageSettled();
-    if (currentKey === key) showAskToast(fresh ? withPageInfo(record) : record);
+    if (currentKey !== key) return;
+    const named = await withPageInfo(record, fresh);
+    if (currentKey === key) showAskToast(named);
     return;
   }
 
@@ -136,18 +138,40 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   await saveJob(record);
   await pageSettled();
   if (currentKey !== key) return;
-  const named = fresh ? withPageInfo(record) : record;
+  const named = await withPageInfo(record, fresh);
   if (named !== record) await saveJob(named);
-  showViewedToast(named);
+  if (currentKey === key) showViewedToast(named);
 }
 
-// Adds the title and company name that the page describes itself with. A record that already
-// has a title is left alone.
-function withPageInfo(record: JobRecord): JobRecord {
+// Adds the job title, and the company name where the page gives a good one. A record that
+// already has a title is left alone.
+async function withPageInfo(record: JobRecord, fresh: boolean): Promise<JobRecord> {
   if (record.title) return record;
-  const { title, company } = readJobInfo(document);
-  if (!title && !company) return record;
-  return { ...record, title, company: company ?? record.company };
+
+  if (fresh) {
+    const { title, company } = readJobInfo(document);
+    if (!title && !company) return record;
+    // Workday names the legal entity ("2100 NVIDIA USA"), and gives no name at all after an
+    // in-page move. Keep the name from the URL there so all records of a company match.
+    const keepCompany = record.ats === 'workday' || !company;
+    return { ...record, title, company: keepCompany ? record.company : company };
+  }
+
+  // Reached without a page load. Only Workday does this among the supported sites, and its job
+  // details appear a moment after the URL changes.
+  if (record.ats !== 'workday') return record;
+  const title = await waitFor(() => readWorkdayTitle(document, record.jobId), 2000);
+  return title ? { ...record, title } : record;
+}
+
+// Calls `read` a few times a second until it returns something, for at most `timeoutMs`.
+async function waitFor<T>(read: () => T | undefined, timeoutMs: number): Promise<T | undefined> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const value = read();
+    if (value !== undefined || Date.now() >= deadline) return value;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
 }
 
 // Toast text: the job's name on the first line when it is known, then the status line.

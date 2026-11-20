@@ -68,3 +68,12 @@ export function readJobInfo(doc: Document): JobInfo {
         company: jsonLd.company ?? meta('og:site_name'),
     };
 }
+
+// The job title shown on a Workday job page. For pages reached without a page load, where
+// readJobInfo cannot be trusted. The requisition id shown on the page must match `jobId`, so a
+// title that is still on screen from the previously opened job is never taken.
+export function readWorkdayTitle(doc: Document, jobId: string): string | undefined {
+    const shownId = doc.querySelector('[data-automation-id="requisitionId"]')?.textContent ?? '';
+    if (!shownId.includes(jobId)) return undefined;
+    return text(doc.querySelector('[data-automation-id="jobPostingHeader"]')?.textContent);
+}

@@ -102,9 +102,9 @@ URL 只负责**去重键**，这部分是精确的：`(ats, company 标识, jobI
 | SmartRecruiters | `og:title` | `og:site_name` | 没有 JSON-LD |
 | Workable | JSON-LD | JSON-LD | |
 | iCIMS | 无 | URL 标识 | 岗位内容在 iframe 里，顶层页面读不到标题。记录暂时没有标题，待处理 |
-| Workday | JSON-LD | JSON-LD | 公司名是内部法人实体名（如 `2100 NVIDIA USA`），不如 URL 标识好看 |
+| Workday | JSON-LD；页面内跳转时取页面上的标题元素 | URL 标识 | JSON-LD 里的公司名是内部法人实体名（如 `2100 NVIDIA USA`），不采用 |
 
-**页面内跳转时这些标签是过期的。** Workday 从列表点进岗位时不重新加载页面，JSON-LD 不存在，`og:title` 仍是列表页的"CAREERS AT NVIDIA"，`document.title` 为空。所以这三层只能在"整页加载到这个 URL"时使用，页面内跳转要另找来源（Workday 的标题在 `[data-automation-id="jobPostingHeader"]` 里）。
+**页面内跳转时这些标签是过期的。** Workday 从列表点进岗位时不重新加载页面，JSON-LD 不存在，`og:title` 仍是列表页的"CAREERS AT NVIDIA"，`document.title` 为空。所以这些标签只能在"整页加载到这个 URL"时使用。页面内跳转时，Workday 的标题取自 `[data-automation-id="jobPostingHeader"]`，并且要求旁边 `[data-automation-id="requisitionId"]` 显示的编号与 URL 解析出的岗位编号一致才采用，避免读到上一个岗位残留的标题。
 
 ### 1.6 关键词规则（默认内置，用户可改）
 
