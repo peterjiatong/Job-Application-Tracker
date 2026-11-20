@@ -25,7 +25,8 @@ const CSS = `
     color: #57606a;
     white-space: pre-line;
 }
-.close {
+.close,
+.collapse {
     border: 0;
     padding: 0 2px;
     background: none;
@@ -34,8 +35,26 @@ const CSS = `
     line-height: 1;
     cursor: pointer;
 }
-.close:hover {
+.close:hover,
+.collapse:hover {
     color: #1f2328;
+}
+[hidden] {
+    display: none !important;
+}
+.pill {
+    padding: 6px 12px;
+    border: 1px solid #d0d7de;
+    border-radius: 999px;
+    background: #fff;
+    color: #1f2328;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+    font: 600 13px/1.3 system-ui, sans-serif;
+    cursor: pointer;
+}
+.pill.has-warnings {
+    border-color: #eac54f;
+    background: #fff8c5;
 }
 .actions {
     display: flex;
@@ -77,7 +96,9 @@ const CSS = `
     font-size: 13px;
 }
 .action:focus-visible,
-.close:focus-visible {
+.close:focus-visible,
+.collapse:focus-visible,
+.pill:focus-visible {
     outline: 2px solid #0969da;
     outline-offset: 2px;
 }
@@ -111,10 +132,13 @@ let dismissCurrent: (() => void) | undefined;
 // What the toast last showed, kept so it can be drawn again when the warnings change.
 let lastOptions: ToastOptions | undefined;
 let warnings: ToastWarning[] = [];
+// Whether the user shrank the toast to a small pill. Kept while the toast is redrawn.
+let collapsed = false;
 
 export function dismissToast(): void {
     dismissCurrent?.();
     lastOptions = undefined;
+    collapsed = false;
 }
 
 // Sets the warnings shown inside the toast: in the one on screen now and in every later one,
@@ -160,8 +184,11 @@ export function showToast(options: ToastOptions): void {
     dismissCurrent = dismiss;
     close.addEventListener('click', dismiss);
 
+    const collapse = el('button', 'collapse', '–');
+    collapse.setAttribute('aria-label', 'Collapse');
+
     const header = el('div', 'header');
-    header.append(el('div', 'title', title), close);
+    header.append(el('div', 'title', title), collapse, close);
 
     const toast = el('div', 'toast');
     toast.setAttribute('role', 'status');
@@ -200,6 +227,28 @@ export function showToast(options: ToastOptions): void {
         toast.append(row);
     }
 
-    host.attachShadow({ mode: 'open' }).append(el('style', '', CSS), toast);
+    // The collapsed form: a small pill that keeps the status and the number of warning
+    // categories in view without covering the page. Clicking it opens the toast again.
+    const categories = new Set(warnings.map((warning) => warning.category)).size;
+    const pill = el('button', 'pill', categories > 0 ? `${title} · ⚠ ${categories}` : title);
+    pill.classList.toggle('has-warnings', categories > 0);
+    pill.setAttribute('aria-label', `${title}. Expand`);
+
+    const setCollapsed = (value: boolean) => {
+        collapsed = value;
+        toast.hidden = collapsed;
+        pill.hidden = !collapsed;
+    };
+    collapse.addEventListener('click', () => {
+        setCollapsed(true);
+        pill.focus();
+    });
+    pill.addEventListener('click', () => {
+        setCollapsed(false);
+        collapse.focus();
+    });
+    setCollapsed(collapsed);
+
+    host.attachShadow({ mode: 'open' }).append(el('style', '', CSS), toast, pill);
     document.documentElement.append(host);
 }
