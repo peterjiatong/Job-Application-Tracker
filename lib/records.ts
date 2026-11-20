@@ -1,5 +1,6 @@
 import { jobKey, normalizeUrl, parseJobUrl } from './ats';
-import { cleanCompanyName } from './companies';
+import { DEFAULT_COLORS, cleanCompanyName, isColor } from './companies';
+import type { CompanyLists } from './companies';
 import { t } from './i18n';
 import { ruleError } from './keywords';
 import type { JobRecord, JobStatus, KeywordRule, Settings } from './types';
@@ -105,7 +106,9 @@ export type ExportFile = {
     exportedAt: string;
     settings: Settings;
     jobs: JobRecord[];
+    // The "not interested" and "interested" company lists.
     companies: string[];
+    interested: string[];
 };
 
 const isText = (value: unknown): value is string => typeof value === 'string';
@@ -151,6 +154,12 @@ function cleanJob(value: unknown): JobRecord | null {
     return job;
 }
 
+function isColors(value: unknown): boolean {
+    if (typeof value !== 'object' || value === null) return false;
+    const v = value as Record<string, unknown>;
+    return isColor(v.avoid) && isColor(v.interested);
+}
+
 function cleanSettings(value: unknown): Settings | undefined {
     if (typeof value !== 'object' || value === null) return undefined;
     const v = value as Record<string, unknown>;
@@ -161,6 +170,7 @@ function cleanSettings(value: unknown): Settings | undefined {
         (v.mode === 'auto' || v.mode === 'manual') &&
         typeof v.keywordsEnabled === 'boolean' &&
         (v.highlightEnabled === undefined || typeof v.highlightEnabled === 'boolean') &&
+        (v.highlightColors === undefined || isColors(v.highlightColors)) &&
         Array.isArray(rules) &&
         rules.every(
             (rule) =>
@@ -177,12 +187,13 @@ function cleanSettings(value: unknown): Settings | undefined {
         keywordsEnabled: v.keywordsEnabled as boolean,
         rules: (rules as KeywordRule[]).map(({ category, pattern }) => ({ category, pattern })),
         highlightEnabled: (v.highlightEnabled as boolean | undefined) ?? true,
+        highlightColors: (v.highlightColors as Settings['highlightColors'] | undefined) ?? DEFAULT_COLORS,
     };
 }
 
 export type ImportResult =
     | { error: string }
-    | { jobs: JobRecord[]; skipped: number; settings: Settings | undefined; companies: string[] };
+    | { jobs: JobRecord[]; skipped: number; settings: Settings | undefined; companies: CompanyLists };
 
 // Reads the text of a file made by the JSON export. Entries that are not valid records are
 // counted in `skipped` and left out; nothing in the file is trusted as it is.
@@ -199,16 +210,14 @@ export function parseImport(text: string): ImportResult {
     }
 
     const jobs = file.jobs.map(cleanJob).filter((job) => job !== null);
-    // Files exported before the company list existed have none.
-    const companies = (Array.isArray(file.companies) ? file.companies : [])
-        .filter(isText)
-        .map(cleanCompanyName)
-        .filter(Boolean);
+    // Files exported before the company lists existed have none.
+    const names = (value: unknown) =>
+        (Array.isArray(value) ? value : []).filter(isText).map(cleanCompanyName).filter(Boolean);
     return {
         jobs,
         skipped: file.jobs.length - jobs.length,
         settings: cleanSettings(file.settings),
-        companies,
+        companies: { avoid: names(file.companies), interested: names(file.interested) },
     };
 }
 

@@ -61,9 +61,11 @@ button:hover {
   gap: 6px;
 }
 
-.avoid input {
+.avoid div button {
   flex: 1;
-  min-width: 0;
+}
+
+.avoid input {
   padding: 6px 8px;
   border: 1px solid #d0d7de;
   border-radius: 6px;

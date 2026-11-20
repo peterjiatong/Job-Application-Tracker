@@ -128,12 +128,15 @@ const en = {
     'rule.error.pattern': 'Give the rule a pattern.',
     'rule.error.invalid': 'Not a valid pattern: {message}',
 
-    // Companies the user is not interested in
+    // The two company lists
     'tab.companies': 'Companies',
     'avoid.title': 'Companies I am not interested in',
-    'avoid.enable': 'Highlight these companies in red',
+    'interested.title': 'Companies I am interested in',
+    'avoid.enable': 'Highlight these companies on web pages',
     'avoid.enable.hint':
-        'Works on LinkedIn, Indeed, Glassdoor, Handshake, ZipRecruiter and the supported application sites. Upper and lower case do not matter, and a name only matches as whole words.',
+        'Works on LinkedIn, Indeed, Glassdoor, Handshake, ZipRecruiter and the supported application sites. Upper and lower case do not matter, and a name only matches as whole words. A company is on one list at a time.',
+    'companies.color': 'Highlight colour',
+    'companies.resetColors': 'Use the default colours',
     'avoid.placeholder': 'Company names, one per line',
     'avoid.added.one': 'Added {n} company.',
     'avoid.added.many': 'Added {n} companies.',
@@ -144,11 +147,13 @@ const en = {
     'avoid.count.many': '{n} companies',
     'avoid.remove': 'Remove {name}',
     'menu.avoid': 'Not interested in "%s"',
-    'popup.avoid.label': 'Not interested in a company',
+    'menu.interested': 'Interested in "%s"',
+    'popup.avoid.label': 'Mark a company',
     'popup.avoid.placeholder': 'Company name',
-    'popup.avoid.add': 'Add to list',
-    'popup.avoid.added': 'Added. It will be highlighted in red.',
-    'popup.avoid.exists': 'Already on the list.',
+    'popup.company.avoid': 'Not interested',
+    'popup.company.interested': 'Interested',
+    'popup.avoid.added': 'Added. It will be highlighted.',
+    'popup.avoid.exists': 'Already on that list.',
     'import.companies': 'companies added to the list: {n}',
 } as const;
 
@@ -277,9 +282,12 @@ const zh: Record<MessageKey, string> = {
 
     'tab.companies': '公司',
     'avoid.title': '不感兴趣的公司',
-    'avoid.enable': '用红色高亮这些公司',
+    'interested.title': '感兴趣的公司',
+    'avoid.enable': '在网页上高亮这些公司',
     'avoid.enable.hint':
-        '在 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter 以及受支持的招聘系统网站上生效。不区分大小写，英文名称只匹配完整的词。',
+        '在 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter 以及受支持的招聘系统网站上生效。不区分大小写，英文名称只匹配完整的词。一家公司同一时间只在一个名单里。',
+    'companies.color': '高亮颜色',
+    'companies.resetColors': '恢复默认颜色',
     'avoid.placeholder': '公司名称，每行一个',
     'avoid.added.one': '已添加 {n} 家公司。',
     'avoid.added.many': '已添加 {n} 家公司。',
@@ -289,11 +297,13 @@ const zh: Record<MessageKey, string> = {
     'avoid.count.many': '{n} 家公司',
     'avoid.remove': '移除 {name}',
     'menu.avoid': '对“%s”不感兴趣',
-    'popup.avoid.label': '对某家公司不感兴趣',
+    'menu.interested': '对“%s”感兴趣',
+    'popup.avoid.label': '标记一家公司',
     'popup.avoid.placeholder': '公司名称',
-    'popup.avoid.add': '加入列表',
-    'popup.avoid.added': '已加入，之后会用红色高亮。',
-    'popup.avoid.exists': '已经在列表里了。',
+    'popup.company.avoid': '不感兴趣',
+    'popup.company.interested': '感兴趣',
+    'popup.avoid.added': '已加入，之后会高亮显示。',
+    'popup.avoid.exists': '已经在这个名单里了。',
     'import.companies': '向公司列表添加了 {n} 个',
 };
 

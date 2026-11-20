@@ -1,5 +1,6 @@
 import { browser } from 'wxt/browser';
-import { addCompanies } from './companies';
+import { DEFAULT_COLORS, addCompanies, removeCompanies } from './companies';
+import type { CompanyList, CompanyLists } from './companies';
 import { DEFAULT_RULES } from './keywords';
 import type { JobRecord, Settings } from './types';
 
@@ -41,9 +42,9 @@ export function onSettingsChanged(callback: () => void): () => void {
     return watch((key) => key === SETTINGS_KEY, callback);
 }
 
-// The list of companies the user is not interested in changed.
+// One of the two company lists changed.
 export function onCompaniesChanged(callback: () => void): () => void {
-    return watch((key) => key === COMPANIES_KEY, callback);
+    return watch((key) => Object.values(COMPANY_KEYS).includes(key), callback);
 }
 
 export async function deleteJob(key: string): Promise<void> {
@@ -64,6 +65,7 @@ const DEFAULT_SETTINGS: Settings = {
     keywordsEnabled: true,
     rules: DEFAULT_RULES,
     highlightEnabled: true,
+    highlightColors: DEFAULT_COLORS,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -79,22 +81,33 @@ export async function saveSettings(settings: Settings): Promise<void> {
     await browser.storage.local.set({ [SETTINGS_KEY]: customRules ? settings : rest });
 }
 
-const COMPANIES_KEY = 'companies';
+// Storage keys of the two company lists. 'companies' is the "not interested" list: it existed
+// first, and keeping its key means lists saved by earlier versions are still found.
+const COMPANY_KEYS: Record<CompanyList, string> = { avoid: 'companies', interested: 'interested' };
 
-// The companies the user is not interested in, as names.
-export async function getCompanies(): Promise<string[]> {
-    const result = await browser.storage.local.get(COMPANIES_KEY);
-    return (result[COMPANIES_KEY] as string[] | undefined) ?? [];
+export async function getCompanyLists(): Promise<CompanyLists> {
+    const result = await browser.storage.local.get(Object.values(COMPANY_KEYS));
+    return {
+        avoid: (result[COMPANY_KEYS.avoid] as string[] | undefined) ?? [],
+        interested: (result[COMPANY_KEYS.interested] as string[] | undefined) ?? [],
+    };
 }
 
-export async function saveCompanies(names: string[]): Promise<void> {
-    await browser.storage.local.set({ [COMPANIES_KEY]: names });
+export async function saveCompanies(list: CompanyList, names: string[]): Promise<void> {
+    await browser.storage.local.set({ [COMPANY_KEYS[list]]: names });
 }
 
-// Adds names to the list and returns how many were new.
-export async function addToCompanies(names: string[]): Promise<number> {
-    const list = await getCompanies();
-    const next = addCompanies(list, names);
-    if (next !== list) await saveCompanies(next);
-    return next.length - list.length;
+// Adds names to one list and returns how many were new to it. A company is only ever on one
+// list, so the names are taken off the other.
+export async function addToCompanies(list: CompanyList, names: string[]): Promise<number> {
+    const lists = await getCompanyLists();
+    const other: CompanyList = list === 'avoid' ? 'interested' : 'avoid';
+    const next = addCompanies(lists[list], names);
+    const nextOther = removeCompanies(lists[other], names);
+
+    const changes: Record<string, string[]> = {};
+    if (next !== lists[list]) changes[COMPANY_KEYS[list]] = next;
+    if (nextOther !== lists[other]) changes[COMPANY_KEYS[other]] = nextOther;
+    if (Object.keys(changes).length > 0) await browser.storage.local.set(changes);
+    return next.length - lists[list].length;
 }

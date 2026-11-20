@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { addCompanies, cleanCompanyName, companyPattern } from './companies';
+import {
+  addCompanies,
+  cleanCompanyName,
+  companyPattern,
+  isColor,
+  removeCompanies,
+  textColorOn,
+} from './companies';
 
 const found = (names: string[], text: string) => [...text.matchAll(companyPattern(names)!)].map((m) => m[0]);
 
@@ -60,3 +67,34 @@ describe('companyPattern', () => {
     expect(found(['字节跳动', 'Société Générale'], '加入字节跳动 / société générale')).toEqual(['字节跳动', 'société générale']);
   });
 });
+
+describe('removeCompanies', () => {
+  it('removes names whatever the case', () => {
+    expect(removeCompanies(['Acme', 'Globex'], [' ACME '])).toEqual(['Globex']);
+  });
+
+  it('returns the same list when nothing was on it', () => {
+    const list = ['Acme'];
+    expect(removeCompanies(list, ['Globex', ''])).toBe(list);
+  });
+});
+
+describe('colours', () => {
+  it('accepts only #rrggbb', () => {
+    expect(isColor('#ff6b6b')).toBe(true);
+    expect(isColor('#FFF')).toBe(false);
+    expect(isColor('red')).toBe(false);
+    expect(isColor('#ff6b6b; background: url(x)')).toBe(false);
+    expect(isColor(7)).toBe(false);
+  });
+
+  it('picks readable text for a background', () => {
+    expect(textColorOn('#ffffff')).toBe('#000000');
+    expect(textColorOn('#ff6b6b')).toBe('#000000');
+    expect(textColorOn('#5fd97a')).toBe('#000000');
+    expect(textColorOn('#000000')).toBe('#ffffff');
+    expect(textColorOn('#1f3a93')).toBe('#ffffff');
+    expect(textColorOn('#8b0000')).toBe('#ffffff');
+  });
+});
+

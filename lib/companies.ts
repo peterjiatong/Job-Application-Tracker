@@ -1,4 +1,25 @@
-// The list of companies the user is not interested in, and finding their names in page text.
+// The two lists of companies the user keeps, and finding their names in page text.
+
+// avoid: not interested (no sponsorship, clearance required, ...). interested: worth a look.
+export type CompanyList = 'avoid' | 'interested';
+export const COMPANY_LISTS: CompanyList[] = ['avoid', 'interested'];
+export type CompanyLists = Record<CompanyList, string[]>;
+
+// Highlight colours, as "#rrggbb". The user can change them.
+export type HighlightColors = Record<CompanyList, string>;
+export const DEFAULT_COLORS: HighlightColors = { avoid: '#ff6b6b', interested: '#5fd97a' };
+
+export function isColor(value: unknown): value is string {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value);
+}
+
+// Black or white, whichever is easier to read on the given background colour.
+export function textColorOn(background: string): '#000000' | '#ffffff' {
+    const channel = (start: number) => parseInt(background.slice(start, start + 2), 16);
+    // Perceived brightness, 0 to 255: the eye is most sensitive to green, least to blue.
+    const brightness = 0.299 * channel(1) + 0.587 * channel(3) + 0.114 * channel(5);
+    return brightness > 140 ? '#000000' : '#ffffff';
+}
 
 const MAX_NAME_LENGTH = 80;
 
@@ -21,6 +42,14 @@ export function addCompanies(list: string[], names: string[]): string[] {
     }
     if (added.length === 0) return list;
     return [...list, ...added].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
+}
+
+// Removes names from the list, in any mix of upper and lower case. Returns the same list if none
+// of them was on it.
+export function removeCompanies(list: string[], names: string[]): string[] {
+    const gone = new Set(names.map((name) => cleanCompanyName(name).toLowerCase()));
+    const kept = list.filter((name) => !gone.has(name.toLowerCase()));
+    return kept.length === list.length ? list : kept;
 }
 
 // One regular expression that finds any of the names in a piece of text, or null for an empty

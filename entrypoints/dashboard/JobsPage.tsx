@@ -16,7 +16,7 @@ import type { ExportFile, JobFilter, SortKey } from '@/lib/records';
 import {
   addToCompanies,
   deleteJob,
-  getCompanies,
+  getCompanyLists,
   getJob,
   getSettings,
   saveJob,
@@ -305,12 +305,14 @@ function Transfer({ jobs }: { jobs: JobRecord[] }) {
   const day = new Date().toISOString().slice(0, 10);
 
   const exportJson = async () => {
+    const lists = await getCompanyLists();
     const file: ExportFile = {
       version: EXPORT_VERSION,
       exportedAt: new Date().toISOString(),
       settings: await getSettings(),
       jobs,
-      companies: await getCompanies(),
+      companies: lists.avoid,
+      interested: lists.interested,
     };
     download(`job-application-tracker-${day}.json`, 'application/json', JSON.stringify(file, null, 2));
   };
@@ -331,7 +333,9 @@ function Transfer({ jobs }: { jobs: JobRecord[] }) {
     });
     await saveJobs(records);
     if (result.settings) await saveSettings(result.settings);
-    const companiesAdded = await addToCompanies(result.companies);
+    const companiesAdded =
+      (await addToCompanies('avoid', result.companies.avoid)) +
+      (await addToCompanies('interested', result.companies.interested));
 
     const parts = [tCount('import.new', records.length - merged), t('import.merged', { n: merged })];
     if (result.skipped > 0) parts.push(tCount('import.skipped', result.skipped));

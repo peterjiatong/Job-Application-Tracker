@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import type { CompanyList } from '@/lib/companies';
 import { formatDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { recordForUrl, withStatus } from '@/lib/records';
@@ -100,35 +101,37 @@ export default function App() {
   );
 }
 
-// Adds a company to the list of companies the user is not interested in.
+// Puts a company on the "not interested" or the "interested" list.
 function AvoidCompany({ suggestion }: { suggestion: string }) {
   const [name, setName] = useState(suggestion);
   const [message, setMessage] = useState<string>();
 
-  const add = async (event: React.FormEvent) => {
-    event.preventDefault();
-    const added = await addToCompanies([name]);
+  const add = async (list: CompanyList) => {
+    const added = await addToCompanies(list, [name]);
     setMessage(added > 0 ? t('popup.avoid.added') : t('popup.avoid.exists'));
   };
 
   return (
-    <form className="avoid" onSubmit={(event) => void add(event)}>
+    <div className="avoid">
       <span>{t('popup.avoid.label')}</span>
+      <input
+        aria-label={t('popup.avoid.placeholder')}
+        placeholder={t('popup.avoid.placeholder')}
+        value={name}
+        onChange={(event) => {
+          setName(event.target.value);
+          setMessage(undefined);
+        }}
+      />
       <div>
-        <input
-          aria-label={t('popup.avoid.placeholder')}
-          placeholder={t('popup.avoid.placeholder')}
-          value={name}
-          onChange={(event) => {
-            setName(event.target.value);
-            setMessage(undefined);
-          }}
-        />
-        <button type="submit" disabled={!name.trim()}>
-          {t('popup.avoid.add')}
+        <button type="button" disabled={!name.trim()} onClick={() => void add('avoid')}>
+          {t('popup.company.avoid')}
+        </button>
+        <button type="button" disabled={!name.trim()} onClick={() => void add('interested')}>
+          {t('popup.company.interested')}
         </button>
       </div>
       {message && <p role="status">{message}</p>}
-    </form>
+    </div>
   );
 }

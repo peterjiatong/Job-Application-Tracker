@@ -1,5 +1,11 @@
-/* Names of companies the user is not interested in. The ranges are set in highlight.ts. */
+/* Default colours for the company names marked by highlight.ts. They apply until the script
+   has set the user's colours, and stay in effect if it cannot. */
 ::highlight(jat-avoid) {
   background-color: #ff6b6b;
+  color: #000;
+}
+
+::highlight(jat-interested) {
+  background-color: #5fd97a;
   color: #000;
 }

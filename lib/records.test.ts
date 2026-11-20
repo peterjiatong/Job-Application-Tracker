@@ -112,8 +112,8 @@ describe('toCsv', () => {
 });
 
 describe('parseImport', () => {
-  const file = (jobs: unknown[], settings?: unknown, companies?: unknown) =>
-    JSON.stringify({ version: 1, jobs, settings, companies });
+  const file = (jobs: unknown[], settings?: unknown, companies?: unknown, interested?: unknown) =>
+    JSON.stringify({ version: 1, jobs, settings, companies, interested });
 
   it('reads back valid records and settings', () => {
     const settings = {
@@ -122,13 +122,14 @@ describe('parseImport', () => {
       keywordsEnabled: false,
       rules: DEFAULT_RULES,
       highlightEnabled: false,
+      highlightColors: { avoid: '#aa0000', interested: '#00aa00' },
     };
     const result = parseImport(file([job(), job({ key: 'x', status: 'applied', appliedAt: 5 })], settings));
     expect(result).toEqual({
       jobs: [job(), job({ key: 'x', status: 'applied', appliedAt: 5 })],
       skipped: 0,
       settings,
-      companies: [],
+      companies: { avoid: [], interested: [] },
     });
   });
 
@@ -153,13 +154,30 @@ describe('parseImport', () => {
   it('accepts settings from before the language setting existed', () => {
     const old = { mode: 'auto', keywordsEnabled: true, rules: DEFAULT_RULES };
     expect(parseImport(file([], old))).toMatchObject({
-      settings: { ...old, language: 'auto', highlightEnabled: true },
+      settings: {
+        ...old,
+        language: 'auto',
+        highlightEnabled: true,
+        highlightColors: { avoid: '#ff6b6b', interested: '#5fd97a' },
+      },
     });
   });
 
   it('reads the company list and drops entries that are not names', () => {
-    const result = parseImport(file([], undefined, [' Acme  Corp ', 7, '', 'x'.repeat(200), 'Globex']));
-    expect(result).toMatchObject({ companies: ['Acme Corp', 'Globex'] });
+    const result = parseImport(
+      file([], undefined, [' Acme  Corp ', 7, '', 'x'.repeat(200), 'Globex'], ['Initech', null]),
+    );
+    expect(result).toMatchObject({ companies: { avoid: ['Acme Corp', 'Globex'], interested: ['Initech'] } });
+  });
+
+  it('ignores settings whose colours are not plain colours', () => {
+    const settings = {
+      mode: 'auto',
+      keywordsEnabled: true,
+      rules: DEFAULT_RULES,
+      highlightColors: { avoid: 'red; background: url(//x)', interested: '#00aa00' },
+    };
+    expect(parseImport(file([], settings))).toMatchObject({ settings: undefined });
   });
 
   it('ignores settings that are not valid', () => {

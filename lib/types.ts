@@ -1,3 +1,4 @@
+import type { HighlightColors } from './companies';
 import type { Language } from './i18n';
 
 export type JobStatus = 'viewed' | 'applied';
@@ -24,8 +25,10 @@ export type Settings = {
     // Whether job descriptions are scanned for restrictive wording.
     keywordsEnabled: boolean;
     rules: KeywordRule[];
-    // Whether companies on the "not interested" list are highlighted on web pages.
+    // Whether the companies on the user's two lists are highlighted on web pages, and in which
+    // colours.
     highlightEnabled: boolean;
+    highlightColors: HighlightColors;
 };
 
 // One keyword rule. `pattern` is a regular expression, kept as text so it can be stored in

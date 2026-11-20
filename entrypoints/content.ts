@@ -2,14 +2,15 @@ import '@/lib/highlight.css';
 import { jobKey, normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
 import { companyPattern } from '@/lib/companies';
+import type { CompanyList } from '@/lib/companies';
 import { formatDate, formatDateTime } from '@/lib/format';
-import { highlightText } from '@/lib/highlight';
+import { highlightText, setHighlightColors } from '@/lib/highlight';
 import { categoryLabel, setLanguage, t } from '@/lib/i18n';
 import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import {
   deleteJob,
-  getCompanies,
+  getCompanyLists,
   getJob,
   getSettings,
   onCompaniesChanged,
@@ -74,15 +75,20 @@ export default defineContentScript({
   },
 });
 
-// Highlights the companies the user is not interested in, and keeps the highlighting current:
-// when the list or the setting changes, and as the page adds content (search results that load
-// while scrolling).
+// Highlights the companies on the user's two lists, each list in its colour, and keeps the
+// highlighting current: when a list or a setting changes, and as the page adds content (search
+// results that load while scrolling).
 async function highlightCompanies(): Promise<void> {
-  let pattern: RegExp | null = null;
+  let patterns: Record<CompanyList, RegExp | null> = { avoid: null, interested: null };
   const reload = async () => {
-    const [settings, companies] = await Promise.all([getSettings(), getCompanies()]);
-    pattern = settings.highlightEnabled ? companyPattern(companies) : null;
-    highlightText(document, pattern);
+    const [settings, lists] = await Promise.all([getSettings(), getCompanyLists()]);
+    const on = settings.highlightEnabled;
+    patterns = {
+      avoid: on ? companyPattern(lists.avoid) : null,
+      interested: on ? companyPattern(lists.interested) : null,
+    };
+    setHighlightColors(document, settings.highlightColors);
+    highlightText(document, patterns);
   };
   await reload();
   onCompaniesChanged(() => void reload());
@@ -90,11 +96,11 @@ async function highlightCompanies(): Promise<void> {
 
   let timer: ReturnType<typeof setTimeout> | undefined;
   new MutationObserver(() => {
-    if (!pattern) return;
+    if (!patterns.avoid && !patterns.interested) return;
     // ponytail: scans the whole page again half a second after the last change. Scan only the
     // changed parts if this ever shows up as slow on very long pages.
     clearTimeout(timer);
-    timer = setTimeout(() => highlightText(document, pattern), 500);
+    timer = setTimeout(() => highlightText(document, patterns), 500);
   }).observe(document, { childList: true, subtree: true, characterData: true });
 }
 
