@@ -92,7 +92,19 @@ URL 只负责**去重键**，这部分是精确的：`(ats, company 标识, jobI
 4. URL 里的公司标识（如 `nvidia`）
 5. 用户在 dashboard 列表里手动改
 
-各 ATS 实际提供哪一层，实现时逐个确认（Workday 是否有 JSON-LD 尚未核实）。
+各 ATS 实际命中的层（2026-11-20 用真实岗位页核实，整页加载的情况）：
+
+| ATS | 岗位标题来自 | 公司名来自 | 备注 |
+|---|---|---|---|
+| Greenhouse | `og:title` | URL 标识 | 没有 JSON-LD，也没有 `og:site_name` |
+| Lever | JSON-LD | JSON-LD | |
+| Ashby | JSON-LD | JSON-LD | 标题带前导空格，需要去掉 |
+| SmartRecruiters | `og:title` | `og:site_name` | 没有 JSON-LD |
+| Workable | JSON-LD | JSON-LD | |
+| iCIMS | `document.title` | URL 标识 | 岗位内容在 iframe 里，顶层页面只有 `document.title`，形如"标题 in 地点 \| Careers at …"，不干净 |
+| Workday | JSON-LD | JSON-LD | 公司名是内部法人实体名（如 `2100 NVIDIA USA`），不如 URL 标识好看 |
+
+**页面内跳转时这些标签是过期的。** Workday 从列表点进岗位时不重新加载页面，JSON-LD 不存在，`og:title` 仍是列表页的"CAREERS AT NVIDIA"，`document.title` 为空。所以这三层只能在"整页加载到这个 URL"时使用，页面内跳转要另找来源（Workday 的标题在 `[data-automation-id="jobPostingHeader"]` 里）。
 
 ### 1.6 关键词规则（默认内置，用户可改）
 
