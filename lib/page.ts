@@ -49,6 +49,19 @@ export function parseJobPostingJsonLd(scripts: string[]): JobInfo {
     return {};
 }
 
+// The page's own document plus the documents of the frames it is allowed to read (frames from
+// the same site). iCIMS puts the whole job posting, and later the application form, in a frame.
+export function readableDocuments(doc: Document): Document[] {
+    const frames = [...doc.querySelectorAll('iframe')].map((frame) => {
+        try {
+            return frame.contentDocument;
+        } catch {
+            return null; // A frame from another site cannot be read.
+        }
+    });
+    return [doc, ...frames.filter((frame) => frame !== null)];
+}
+
 // Reads the job title and company name that the page describes itself with.
 // Order: JSON-LD JobPosting, then Open Graph meta tags.
 // document.title is deliberately not used: the only site that needed it was iCIMS, where it
@@ -56,8 +69,12 @@ export function parseJobPostingJsonLd(scripts: string[]): JobInfo {
 // Only valid for the URL the document was loaded with: single-page apps (Workday) leave
 // these tags unchanged when the user moves to another job without a page load.
 export function readJobInfo(doc: Document): JobInfo {
-    const scripts = [...doc.querySelectorAll('script[type="application/ld+json"]')].map(
-        (script) => script.textContent ?? '',
+    // JSON-LD is also looked for inside frames. The meta tags are not: a frame's own og:title
+    // on iCIMS is the title mixed with location text.
+    const scripts = readableDocuments(doc).flatMap((each) =>
+        [...each.querySelectorAll('script[type="application/ld+json"]')].map(
+            (script) => script.textContent ?? '',
+        ),
     );
     const jsonLd = parseJobPostingJsonLd(scripts);
     const meta = (property: string) =>
@@ -102,17 +119,11 @@ export function pageQuiet(doc: Document, quietMs: number, timeoutMs: number): Pr
     });
 }
 
-// The visible text of the page, including frames it is allowed to read. iCIMS shows the job
-// description in a frame of its own.
+// The visible text of the page, including the frames it is allowed to read.
 export function pageText(doc: Document): string {
-    const frames = [...doc.querySelectorAll('iframe')].map((frame) => {
-        try {
-            return frame.contentDocument?.body?.innerText ?? '';
-        } catch {
-            return ''; // A frame from another site cannot be read.
-        }
-    });
-    return [doc.body.innerText, ...frames].join('\n');
+    return readableDocuments(doc)
+        .map((each) => each.body?.innerText ?? '')
+        .join('\n');
 }
 
 // Whether a button's text says that clicking it submits a job application.

@@ -53,7 +53,9 @@ export default defineContentScript({
     });
 
     // Capture phase: the page's own code may stop the click from reaching `document` otherwise.
-    ctx.addEventListener(document, 'click', (event) => void onPageClick(event), true);
+    const onClick = (event: Event) => void onPageClick(event);
+    ctx.addEventListener(document, 'click', onClick, true);
+    watchFrames(onClick);
   },
 });
 
@@ -92,7 +94,6 @@ const AUTO_APPLIED_KEY = 'jat:autoApplied';
 // Auto mode: clicking a button that submits the application marks the job as applied.
 // The click only shows intent. If the form then refuses to submit, the toast with Undo is
 // still on screen.
-// ponytail: buttons inside frames (iCIMS) are not seen; run the script in all frames if needed.
 async function onPageClick(event: Event): Promise<void> {
   const key = currentKey;
   if (!key || !isSubmitLabel(clickedLabel(event))) return;
@@ -112,14 +113,44 @@ async function onPageClick(event: Event): Promise<void> {
 
 // The text of the button or link that was clicked, or '' if the click was on something else.
 function clickedLabel(event: Event): string {
-  for (const node of event.composedPath()) {
-    if (!(node instanceof HTMLElement)) continue;
+  for (const target of event.composedPath()) {
+    // Not `instanceof HTMLElement`: an element inside a frame belongs to that frame's own
+    // HTMLElement class, so the check would fail for it.
+    const node = target as HTMLElement;
+    if (node.nodeType !== Node.ELEMENT_NODE) continue;
     if (node.id === 'jat-toast') return ''; // our own buttons
     if (node.matches('button, input[type="submit"], input[type="button"], [role="button"], a')) {
       return node.innerText || (node as HTMLInputElement).value || node.ariaLabel || '';
     }
   }
   return '';
+}
+
+// A click inside a frame never reaches the page around it. iCIMS shows the application form in
+// a frame, so listen inside every frame this page is allowed to read (frames from the same site).
+function watchFrames(onClick: (event: Event) => void): void {
+  const watch = (frame: HTMLIFrameElement) => {
+    const listen = () => {
+      try {
+        frame.contentDocument?.addEventListener('click', onClick, true);
+      } catch {
+        // A frame from another site. It cannot be read, and is not an application form of ours.
+      }
+    };
+    listen();
+    // Each step of the form is a new document in the same frame.
+    frame.addEventListener('load', listen);
+  };
+
+  document.querySelectorAll('iframe').forEach(watch);
+  new MutationObserver((mutations) => {
+    for (const { addedNodes } of mutations) {
+      for (const node of addedNodes) {
+        if (node instanceof HTMLIFrameElement) watch(node);
+        else if (node instanceof Element) node.querySelectorAll('iframe').forEach(watch);
+      }
+    }
+  }).observe(document, { childList: true, subtree: true });
 }
 
 // True once, on the first page after onPageClick marked this job.
@@ -149,13 +180,23 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   setCurrentKey(key);
   if (!sameJob) forgetPage();
 
-  await showJob(job, key, url, sameJob, fresh);
+  // iCIMS rewrites its own address a moment after loading, which lands here a second time
+  // while the first look at the job is still under way. Let the first one finish alone.
+  if (sameJob && pendingKey === key) return;
+  pendingKey = key;
+  try {
+    await showJob(job, key, url, sameJob, fresh);
+  } finally {
+    if (pendingKey === key) pendingKey = null;
+  }
   // Later pages of the same job are application forms, not the job description. Scan once.
   if (!sameJob && currentKey === key) await flagKeywords(job, key, fresh);
 }
 
 // Warning categories found on the page being shown.
 let pageFlags: string[] = [];
+// The job that showJob is working on right now, if any.
+let pendingKey: string | null = null;
 
 // Clears what was on screen for the previous job.
 function forgetPage(): void {
@@ -278,7 +319,14 @@ async function withPageInfo(record: JobRecord, fresh: boolean): Promise<JobRecor
   if (record.title) return record;
 
   if (fresh) {
-    const { title, company } = readJobInfo(document);
+    // iCIMS builds the frame that holds the posting after the page has loaded, so give it a
+    // moment to appear.
+    const read = () => {
+      const info = readJobInfo(document);
+      return info.title ? info : undefined;
+    };
+    const { title, company } =
+      (record.ats === 'icims' ? await waitFor(read, 4000) : read()) ?? readJobInfo(document);
     if (!title && !company) return record;
     // Workday names the legal entity ("2100 NVIDIA USA"), and gives no name at all after an
     // in-page move. Keep the name from the URL there so all records of a company match.
