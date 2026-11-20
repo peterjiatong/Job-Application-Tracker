@@ -126,3 +126,315 @@ button:hover {
   color: #cf222e;
   font-size: 13px;
 }
+
+/* Page frame and tabs */
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+header h1 {
+  margin: 0;
+}
+
+nav {
+  display: flex;
+  gap: 4px;
+}
+
+nav button[aria-current='true'] {
+  border-color: #1f2328;
+  background: #1f2328;
+  color: #fff;
+}
+
+main {
+  max-width: 1080px;
+}
+
+/* Numbers */
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  border: 1px solid #d0d7de;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.card strong {
+  font-size: 26px;
+  line-height: 1.2;
+}
+
+.card span {
+  color: #57606a;
+  font-size: 13px;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bar-row {
+  display: grid;
+  grid-template-columns: 130px 1fr 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 14px;
+}
+
+.bar-track {
+  height: 10px;
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 3px;
+  background: #0969da;
+}
+
+.count {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Activity chart */
+
+.heatmap {
+  display: flex;
+  gap: 3px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.month {
+  height: 16px;
+  /* A label is wider than its column and is allowed to run over the next ones. */
+  width: 13px;
+  overflow: visible;
+  color: #57606a;
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.day {
+  display: block;
+  width: 13px;
+  height: 13px;
+  border-radius: 2px;
+  background: #ebedf0;
+}
+
+.day.blank {
+  background: none;
+}
+
+.day.level-1 {
+  background: #9be9a8;
+}
+
+.day.level-2 {
+  background: #40c463;
+}
+
+.day.level-3 {
+  background: #30a14e;
+}
+
+.day.level-4 {
+  background: #216e39;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 8px 0 0;
+  color: #57606a;
+  font-size: 12px;
+}
+
+/* Job list */
+
+.add,
+.transfer,
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.add input:not([type]),
+.filters input[type='search'] {
+  flex: 1;
+  min-width: 220px;
+}
+
+.add label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.add p,
+.transfer p {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.filters {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #d0d7de;
+}
+
+.count-shown {
+  margin: 0 0 0 auto;
+}
+
+input[type='search'],
+select {
+  padding: 6px 8px;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  background: #fff;
+  color: inherit;
+  font: inherit;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+th,
+td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eaeef2;
+  text-align: left;
+  vertical-align: middle;
+}
+
+th button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+th button:hover {
+  background: none;
+  text-decoration: underline;
+}
+
+td.wide {
+  width: 40%;
+}
+
+.nowrap {
+  white-space: nowrap;
+}
+
+/* Company and title look like plain text until they are hovered or edited. */
+input.cell {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 4px 6px;
+  border-color: transparent;
+  background: none;
+}
+
+input.cell:hover,
+input.cell:focus {
+  border-color: #d0d7de;
+  background: #fff;
+}
+
+td select {
+  padding: 3px 6px;
+}
+
+.tag {
+  display: inline-block;
+  margin-right: 4px;
+  padding: 1px 8px;
+  border: 1px solid #eac54f;
+  border-radius: 999px;
+  background: #fff8c5;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+button.quiet {
+  margin-left: 8px;
+  padding: 2px 6px;
+  border-color: transparent;
+  background: none;
+  color: #cf222e;
+}
+
+button.quiet:hover {
+  border-color: #cf222e;
+  background: none;
+}
+
+a {
+  color: #0969da;
+}
+
+.empty {
+  padding: 24px 0;
+  color: #57606a;
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .cards,
+  .columns {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Company column: wide enough for a host name such as careers.example.org */
+td:nth-child(2) {
+  min-width: 160px;
+}

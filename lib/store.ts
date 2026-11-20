@@ -14,6 +14,25 @@ export async function saveJob(record: JobRecord): Promise<void> {
     await browser.storage.local.set({ [JOB_PREFIX + record.key]: record });
 }
 
+// Saves many records in one write, so listeners hear about it once.
+export async function saveJobs(records: JobRecord[]): Promise<void> {
+    await browser.storage.local.set(
+        Object.fromEntries(records.map((record) => [JOB_PREFIX + record.key, record])),
+    );
+}
+
+// Calls `callback` whenever a job record is added, changed or removed, in any tab.
+// Returns a function that stops listening.
+export function onJobsChanged(callback: () => void): () => void {
+    const listener = (changes: Record<string, unknown>, area: string) => {
+        if (area === 'local' && Object.keys(changes).some((key) => key.startsWith(JOB_PREFIX))) {
+            callback();
+        }
+    };
+    browser.storage.onChanged.addListener(listener);
+    return () => browser.storage.onChanged.removeListener(listener);
+}
+
 export async function deleteJob(key: string): Promise<void> {
     await browser.storage.local.remove(JOB_PREFIX + key);
 }

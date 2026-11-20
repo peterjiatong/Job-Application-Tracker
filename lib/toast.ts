@@ -95,7 +95,21 @@ const CSS = `
     margin-top: 2px;
     font-size: 13px;
 }
+.link {
+    margin-left: auto;
+    padding: 4px 0;
+    border: 0;
+    background: none;
+    color: #0969da;
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+.link:hover {
+    text-decoration: underline;
+}
 .action:focus-visible,
+.link:focus-visible,
 .close:focus-visible,
 .collapse:focus-visible,
 .pill:focus-visible {
@@ -134,6 +148,12 @@ let lastOptions: ToastOptions | undefined;
 let warnings: ToastWarning[] = [];
 // Whether the user shrank the toast to a small pill. Kept while the toast is redrawn.
 let collapsed = false;
+// A link shown at the bottom of every toast. Unlike an action, clicking it keeps the toast.
+let link: ToastAction | undefined;
+
+export function setToastLink(value: ToastAction | undefined): void {
+    link = value;
+}
 
 export function dismissToast(): void {
     dismissCurrent?.();
@@ -211,7 +231,7 @@ export function showToast(options: ToastOptions): void {
         toast.append(list);
     }
 
-    if (actions.length > 0) {
+    if (actions.length > 0 || link) {
         const row = el('div', 'actions');
         for (const action of actions) {
             const button = el('button', 'action', action.label);
@@ -222,6 +242,11 @@ export function showToast(options: ToastOptions): void {
                 lastOptions = undefined;
                 action.onClick();
             });
+            row.append(button);
+        }
+        if (link) {
+            const button = el('button', 'link', link.label);
+            button.addEventListener('click', link.onClick);
             row.append(button);
         }
         toast.append(row);

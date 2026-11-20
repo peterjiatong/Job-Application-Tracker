@@ -1,9 +1,16 @@
 import { jobKey, normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
-import { dismissToast, isToastOpen, setToastWarnings, showToast } from '@/lib/toast';
+import {
+  dismissToast,
+  isToastOpen,
+  setToastLink,
+  setToastWarnings,
+  showToast,
+} from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
 
 export default defineContentScript({
@@ -22,6 +29,12 @@ export default defineContentScript({
     'https://*.myworkdaysite.com/*',
   ],
   main(ctx) {
+    // A content script cannot open a tab itself, so it asks the background script to.
+    setToastLink({
+      label: 'Dashboard',
+      onClick: () => void browser.runtime.sendMessage({ type: 'open-dashboard' }),
+    });
+
     currentKey = previousPageKey();
     let handledUrl = location.href;
     void handlePage(handledUrl, true);
@@ -361,26 +374,6 @@ function showMarkedToast(viewed: JobRecord, showPrevious: (record: JobRecord) =>
         onClick: () => void saveWithFlags(viewed).then(() => showPrevious(viewed)),
       },
     ],
-  });
-}
-
-// "Nov 5, 2026"
-function formatDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-// "Nov 5, 2026, 3:07 PM", in the browser's time zone.
-function formatDateTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
   });
 }
 

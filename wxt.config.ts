@@ -5,6 +5,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: 'Job Application Tracker',
-    permissions: ['storage'],
+    // activeTab: lets the toolbar popup read the address of the tab it was opened on.
+    permissions: ['storage', 'activeTab'],
   },
 });
