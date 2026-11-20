@@ -1,6 +1,7 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
 import { deleteJob, getJob, saveJob } from '@/lib/store';
 import { showToast } from '@/lib/toast';
+import type { JobRecord } from '@/lib/types';
 
 export default defineContentScript({
   matches: [
@@ -25,7 +26,7 @@ export default defineContentScript({
     if (await getJob(key)) return;
 
     const now = Date.now();
-    await saveJob({
+    const record: JobRecord = {
       ...job,
       key,
       url: normalizeUrl(location.href) ?? location.href,
@@ -34,16 +35,39 @@ export default defineContentScript({
       lastSeenAt: now,
       flags: [],
       source: 'auto',
-    });
+    };
+    await saveJob(record);
 
     await pageSettled();
-    showToast({
-      title: 'Job recorded',
-      body: 'Saved as viewed.',
-      actions: [{ label: 'Undo', onClick: () => void deleteJob(key) }],
-    });
+    showViewedToast(record);
   },
 });
+
+function showViewedToast(record: JobRecord): void {
+  showToast({
+    title: 'Job recorded',
+    body: 'Saved as viewed.',
+    actions: [
+      { label: 'Undo', onClick: () => void deleteJob(record.key) },
+      { label: 'Mark as applied', onClick: () => void markApplied(record) },
+    ],
+  });
+}
+
+async function markApplied(record: JobRecord): Promise<void> {
+  await saveJob({ ...record, status: 'applied', appliedAt: Date.now() });
+  showToast({
+    title: 'Marked as applied',
+    body: 'Saved as applied.',
+    // `record` is still the viewed version, so saving it again undoes the change.
+    actions: [{ label: 'Undo', onClick: () => void unmarkApplied(record) }],
+  });
+}
+
+async function unmarkApplied(record: JobRecord): Promise<void> {
+  await saveJob(record);
+  showViewedToast(record);
+}
 
 // Pages that React renders on the server (Greenhouse) rebuild their whole document if the DOM
 // changes before React has started up. So wait for the page to load, then a little longer,
