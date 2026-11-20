@@ -76,7 +76,7 @@ WXT 的具体 API 名称和命令以动手时的官方文档（wxt.dev）为准�
 
 ## M2 关键词预警与设置（约 6.5 小时）
 
-- [ ] **M2.1 关键词扫描纯函数**（2h）
+- [x] **M2.1 关键词扫描纯函数**（2h）
   - 做：`lib/keywords.ts`：`scan(text, rules)` 返回命中列表，每项包含类别和**命中处所在的原句片段**；内置三类默认规则（见需求文档 1.6）
   - 验收：每类规则至少 3 个应命中的句子和 3 个不应命中的句子做测试。必须包含这一对：`We are unable to sponsor visas`（命中）和 `We sponsor visas for qualified candidates`（不命中）
   - 留意：同一类别命中多处时只保留前一两处，避免弹框过长
