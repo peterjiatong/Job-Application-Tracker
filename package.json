@@ -2,7 +2,7 @@
   "name": "job-application-tracker",
   "description": "Remembers which job postings you have already viewed or applied to, across job boards. Local-only.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",
@@ -11,6 +11,7 @@
     "build:firefox": "wxt build -b firefox",
     "zip": "wxt zip",
     "zip:firefox": "wxt zip -b firefox",
+    "release": "wxt build && rm -rf release/job-application-tracker-chrome && mkdir -p release && cp -R .output/chrome-mv3 release/job-application-tracker-chrome",
     "compile": "tsc --noEmit",
     "test": "vitest run",
     "postinstall": "wxt prepare"
