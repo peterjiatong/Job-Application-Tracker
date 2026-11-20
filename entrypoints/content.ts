@@ -1,6 +1,7 @@
 import { jobKey, normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { categoryLabel, setLanguage, t } from '@/lib/i18n';
 import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
@@ -29,12 +30,6 @@ export default defineContentScript({
     'https://*.myworkdaysite.com/*',
   ],
   main(ctx) {
-    // A content script cannot open a tab itself, so it asks the background script to.
-    setToastLink({
-      label: 'Dashboard',
-      onClick: () => void browser.runtime.sendMessage({ type: 'open-dashboard' }),
-    });
-
     currentKey = previousPageKey();
     let handledUrl = location.href;
     void handlePage(handledUrl, true);
@@ -219,6 +214,14 @@ async function showJob(
   sameJob: boolean,
   fresh: boolean,
 ): Promise<void> {
+  // Read the language every time, so a change made on the dashboard shows on the next page.
+  setLanguage((await getSettings()).language);
+  setToastLink({
+    label: t('toast.dashboard'),
+    // A content script cannot open a tab itself, so it asks the background script to.
+    onClick: () => void browser.runtime.sendMessage({ type: 'open-dashboard' }),
+  });
+
   const existing = await getJob(key);
   if (existing) {
     // On later pages of the same job, keep offering "Mark as applied" while the job is only
@@ -302,7 +305,7 @@ async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promis
 
   const hits = scan(pageText(document), rules);
   pageFlags = [...new Set(hits.map((hit) => hit.category))];
-  setToastWarnings(hits);
+  setToastWarnings(hits.map((hit) => ({ ...hit, category: categoryLabel(hit.category) })));
 
   // Read the record again: the user may have changed it while we waited. Flags are only ever
   // added, so opening an application form (which has no job description) does not clear them.
@@ -359,15 +362,15 @@ function describe(record: JobRecord, status: string): string {
 // Manual mode, first visit: nothing is saved until the user clicks Record.
 function showAskToast(record: JobRecord): void {
   showToast({
-    title: 'Record this job?',
-    body: describe(record, 'It is not in your tracker yet.'),
+    title: t('toast.ask.title'),
+    body: describe(record, t('toast.ask.body')),
     actions: [
       {
-        label: 'Record',
+        label: t('action.record'),
         onClick: () => void saveWithFlags(record).then(() => showViewedToast(record)),
       },
       // Ignore saves nothing, so the question comes back on the next visit.
-      { label: 'Ignore', onClick: () => {} },
+      { label: t('action.ignore'), onClick: () => {} },
     ],
   });
 }
@@ -375,11 +378,11 @@ function showAskToast(record: JobRecord): void {
 // First visit: the job was just recorded.
 function showViewedToast(record: JobRecord): void {
   showToast({
-    title: 'Job recorded',
-    body: describe(record, 'Saved as viewed.'),
+    title: t('toast.recorded.title'),
+    body: describe(record, t('toast.recorded.body')),
     actions: [
-      { label: 'Undo', onClick: () => void deleteJob(record.key) },
-      { label: 'Mark as applied', onClick: () => void markApplied(record, showViewedToast) },
+      { label: t('action.undo'), onClick: () => void deleteJob(record.key) },
+      { label: t('action.markApplied'), onClick: () => void markApplied(record, showViewedToast) },
     ],
   });
 }
@@ -388,16 +391,22 @@ function showViewedToast(record: JobRecord): void {
 function showSeenToast(record: JobRecord): void {
   if (record.status === 'applied') {
     showToast({
-      title: 'You applied to this job',
-      body: describe(record, `Applied on ${formatDate(record.appliedAt ?? record.firstSeenAt)}.`),
+      title: t('toast.applied.title'),
+      body: describe(
+        record,
+        t('toast.applied.body', { date: formatDate(record.appliedAt ?? record.firstSeenAt) }),
+      ),
     });
     return;
   }
   showToast({
-    title: "You've seen this job",
-    body: describe(record, `First viewed on ${formatDateTime(record.firstSeenAt)}.`),
+    title: t('toast.seen.title'),
+    body: describe(record, t('toast.seen.body', { date: formatDateTime(record.firstSeenAt) })),
     actions: [
-      { label: 'Mark as applied', onClick: () => void markApplied(record, showSeenToast) },
+      {
+        label: t('action.markApplied'),
+        onClick: () => void markApplied(record, showSeenToast),
+      },
     ],
   });
 }
@@ -414,11 +423,11 @@ async function markApplied(
 // `viewed` is the record as it was before it was marked, so saving it again undoes the change.
 function showMarkedToast(viewed: JobRecord, showPrevious: (record: JobRecord) => void): void {
   showToast({
-    title: 'Marked as applied',
-    body: describe(viewed, 'Saved as applied.'),
+    title: t('toast.marked.title'),
+    body: describe(viewed, t('toast.marked.body')),
     actions: [
       {
-        label: 'Undo',
+        label: t('action.undo'),
         onClick: () => void saveWithFlags(viewed).then(() => showPrevious(viewed)),
       },
     ],

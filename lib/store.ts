@@ -45,7 +45,12 @@ export async function listJobs(): Promise<JobRecord[]> {
 }
 
 const SETTINGS_KEY = 'settings';
-const DEFAULT_SETTINGS: Settings = { mode: 'auto', keywordsEnabled: true, rules: DEFAULT_RULES };
+const DEFAULT_SETTINGS: Settings = {
+    language: 'auto',
+    mode: 'auto',
+    keywordsEnabled: true,
+    rules: DEFAULT_RULES,
+};
 
 export async function getSettings(): Promise<Settings> {
     const result = await browser.storage.local.get(SETTINGS_KEY);

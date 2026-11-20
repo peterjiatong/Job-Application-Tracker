@@ -1,4 +1,5 @@
 import { jobKey, normalizeUrl, parseJobUrl } from './ats';
+import { t } from './i18n';
 import { ruleError } from './keywords';
 import type { JobRecord, JobStatus, KeywordRule, Settings } from './types';
 
@@ -153,6 +154,8 @@ function cleanSettings(value: unknown): Settings | undefined {
     const v = value as Record<string, unknown>;
     const rules = v.rules;
     const ok =
+        // Files exported before the language setting existed have none.
+        (v.language === undefined || v.language === 'auto' || v.language === 'en' || v.language === 'zh') &&
         (v.mode === 'auto' || v.mode === 'manual') &&
         typeof v.keywordsEnabled === 'boolean' &&
         Array.isArray(rules) &&
@@ -166,6 +169,7 @@ function cleanSettings(value: unknown): Settings | undefined {
         );
     if (!ok) return undefined;
     return {
+        language: (v.language as Settings['language'] | undefined) ?? 'auto',
         mode: v.mode as Settings['mode'],
         keywordsEnabled: v.keywordsEnabled as boolean,
         rules: (rules as KeywordRule[]).map(({ category, pattern }) => ({ category, pattern })),
@@ -183,11 +187,11 @@ export function parseImport(text: string): ImportResult {
     try {
         data = JSON.parse(text);
     } catch {
-        return { error: 'This file is not valid JSON.' };
+        return { error: t('import.notJson') };
     }
     const file = data as Partial<ExportFile> | null;
     if (typeof file !== 'object' || file === null || !Array.isArray(file.jobs)) {
-        return { error: 'This file does not look like a Job Application Tracker export.' };
+        return { error: t('import.notExport') };
     }
 
     const jobs = file.jobs.map(cleanJob).filter((job) => job !== null);

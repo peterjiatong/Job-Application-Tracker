@@ -1,3 +1,5 @@
+import { t } from './i18n';
+
 const CSS = `
 .toast {
     box-sizing: border-box;
@@ -187,7 +189,7 @@ export function showToast(options: ToastOptions): void {
         'all: initial; position: fixed; top: 16px; right: 16px; z-index: 2147483647;';
 
     const close = el('button', 'close', '×');
-    close.setAttribute('aria-label', 'Close');
+    close.setAttribute('aria-label', t('toast.close'));
 
     // Some pages (Greenhouse: Remix/React) replace the whole <html> element while starting up,
     // which throws the toast away with it. Put it back when that happens.
@@ -205,7 +207,7 @@ export function showToast(options: ToastOptions): void {
     close.addEventListener('click', dismiss);
 
     const collapse = el('button', 'collapse', '–');
-    collapse.setAttribute('aria-label', 'Collapse');
+    collapse.setAttribute('aria-label', t('toast.collapse'));
 
     const header = el('div', 'header');
     header.append(el('div', 'title', title), collapse, close);
@@ -257,7 +259,7 @@ export function showToast(options: ToastOptions): void {
     const categories = new Set(warnings.map((warning) => warning.category)).size;
     const pill = el('button', 'pill', categories > 0 ? `${title} · ⚠ ${categories}` : title);
     pill.classList.toggle('has-warnings', categories > 0);
-    pill.setAttribute('aria-label', `${title}. Expand`);
+    pill.setAttribute('aria-label', t('toast.expand', { title }));
 
     const setCollapsed = (value: boolean) => {
         collapsed = value;

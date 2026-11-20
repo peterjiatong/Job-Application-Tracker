@@ -1,8 +1,7 @@
 import { formatDate } from '@/lib/format';
+import { categoryLabel, dateLocale, t } from '@/lib/i18n';
 import { activityLevel, dailyActivity, heatmapWeeks, localDay, summarize } from '@/lib/stats';
 import type { JobRecord } from '@/lib/types';
-
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // The numbers and the activity chart at the top of the Jobs tab.
 export function Overview({ jobs }: { jobs: JobRecord[] }) {
@@ -15,20 +14,23 @@ export function Overview({ jobs }: { jobs: JobRecord[] }) {
   return (
     <>
       <section className="cards">
-        <Card label="Jobs recorded" value={summary.total} />
-        <Card label="Applied" value={summary.applied} />
-        <Card label="Applied in the last 7 days" value={summary.appliedLast7Days} />
-        <Card label="Applied out of recorded" value={`${Math.round(summary.conversion * 100)}%`} />
+        <Card label={t('card.total')} value={summary.total} />
+        <Card label={t('card.applied')} value={summary.applied} />
+        <Card label={t('card.week')} value={summary.appliedLast7Days} />
+        <Card label={t('card.rate')} value={`${Math.round(summary.conversion * 100)}%`} />
       </section>
 
       <section>
-        <h2>Applications per day</h2>
-        <div className="heatmap" role="img" aria-label="Applications per day over the last year">
+        <h2>{t('chart.title')}</h2>
+        <div className="heatmap" role="img" aria-label={t('chart.label')}>
           {weeks.map((week, index) => {
             // Label a column with the month when a month starts in it.
             const first = week.find((day) => day !== null);
             const previous = weeks[index - 1]?.find((day) => day !== null);
-            const month = first && first.getMonth() !== previous?.getMonth() ? MONTHS[first.getMonth()] : '';
+            const month =
+              first && first.getMonth() !== previous?.getMonth()
+                ? first.toLocaleDateString(dateLocale(), { month: 'short' })
+                : '';
             return (
               <div className="week" key={index}>
                 <span className="month">{month}</span>
@@ -39,7 +41,7 @@ export function Overview({ jobs }: { jobs: JobRecord[] }) {
                     <span
                       className={`day level-${activityLevel(applied)}`}
                       key={weekday}
-                      title={`${formatDate(day)}: ${applied} applied, ${viewed} first viewed`}
+                      title={t('chart.day', { date: formatDate(day), applied, viewed })}
                     />
                   );
                 })}
@@ -48,21 +50,21 @@ export function Overview({ jobs }: { jobs: JobRecord[] }) {
           })}
         </div>
         <p className="legend">
-          Less
+          {t('chart.less')}
           {[0, 1, 2, 3, 4].map((level) => (
             <span className={`day level-${level}`} key={level} />
           ))}
-          More
+          {t('chart.more')}
         </p>
       </section>
 
       <div className="columns">
         <section>
-          <h2>By site</h2>
-          {summary.byAts.length === 0 && <p className="hint">Nothing yet.</p>}
+          <h2>{t('sites.title')}</h2>
+          {summary.byAts.length === 0 && <p className="hint">{t('sites.empty')}</p>}
           {summary.byAts.map(([name, count]) => (
             <div className="bar-row" key={name}>
-              <span>{name}</span>
+              <span>{name === 'other' ? t('sites.other') : name}</span>
               <span className="bar-track">
                 <span className="bar" style={{ width: `${(count / mostCommon) * 100}%` }} />
               </span>
@@ -71,11 +73,11 @@ export function Overview({ jobs }: { jobs: JobRecord[] }) {
           ))}
         </section>
         <section>
-          <h2>Jobs with warnings</h2>
-          {summary.byFlag.length === 0 && <p className="hint">None.</p>}
+          <h2>{t('flags.title')}</h2>
+          {summary.byFlag.length === 0 && <p className="hint">{t('flags.empty')}</p>}
           {summary.byFlag.map(([name, count]) => (
             <div className="bar-row" key={name}>
-              <span className="tag">{name}</span>
+              <span className="tag">{categoryLabel(name)}</span>
               <span />
               <span className="count">{count}</span>
             </div>

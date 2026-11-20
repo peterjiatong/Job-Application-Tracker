@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/format';
+import { t } from '@/lib/i18n';
 import { recordForUrl, withStatus } from '@/lib/records';
 import { getJob, getSettings, saveJob, saveSettings } from '@/lib/store';
 import type { JobRecord, Settings } from '@/lib/types';
@@ -50,29 +51,32 @@ export default function App() {
   return (
     <>
       {page === null ? (
-        <p className="status">This page cannot be recorded.</p>
+        <p className="status">{t('popup.cannot')}</p>
       ) : (
         <>
           <p className="status">
-            {!page.stored && 'Not recorded'}
-            {page.stored?.status === 'viewed' && `Viewed · first seen ${formatDate(page.stored.firstSeenAt)}`}
+            {!page.stored && t('popup.notRecorded')}
+            {page.stored?.status === 'viewed' &&
+              t('popup.viewed', { date: formatDate(page.stored.firstSeenAt) })}
             {page.stored?.status === 'applied' &&
-              `Applied on ${formatDate(page.stored.appliedAt ?? page.stored.firstSeenAt)}`}
+              t('popup.applied', {
+                date: formatDate(page.stored.appliedAt ?? page.stored.firstSeenAt),
+              })}
           </p>
           <p className="job">{shown?.title ? `${shown.title} · ${shown.company}` : shown?.company}</p>
           {!page.stored && (
             <button type="button" onClick={() => void save(page.candidate)}>
-              Record this page
+              {t('popup.record')}
             </button>
           )}
           {page.stored?.status === 'viewed' && (
             <button type="button" onClick={() => void save(withStatus(page.stored!, 'applied', Date.now()))}>
-              Mark as applied
+              {t('action.markApplied')}
             </button>
           )}
           {page.stored?.status === 'applied' && (
             <button type="button" onClick={() => void save(withStatus(page.stored!, 'viewed', Date.now()))}>
-              Mark as not applied
+              {t('popup.markNotApplied')}
             </button>
           )}
         </>
@@ -84,10 +88,10 @@ export default function App() {
           checked={settings.mode === 'auto'}
           onChange={(event) => setAutomatic(event.target.checked)}
         />
-        Record jobs automatically
+        {t('popup.auto')}
       </label>
       <button type="button" onClick={openDashboard}>
-        Open dashboard
+        {t('popup.dashboard')}
       </button>
     </>
   );

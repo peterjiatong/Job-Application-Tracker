@@ -45,7 +45,7 @@
 | F10 | 导出 / 导入 | JSON 导出导入（备份、换浏览器迁移），CSV 导出 | P0 |
 | F11 | 自动识别"已提交" | 自动模式下，点击带有"Submit""Submit application"等字样的按钮时自动标记 `applied`（用户 2026-11-20 提出，提前到 M2 做）。检测各 ATS 的提交成功页（如 Greenhouse `/confirmation`、Lever `/thanks`）作为之后的补充 | P0 |
 | F12 | 自定义域名监控 | 对手动添加的非内置域名申请该域名的可选权限，之后也能自动提醒（覆盖公司自建招聘页嵌入 Greenhouse 等情况） | P1 |
-| F13 | 多语言界面 | `browser.i18n`，首版只做英文界面 | P2 |
+| F13 | 多语言界面 | 英文和中文，在设置里切换，默认跟随浏览器语言（2026-11-20 完成）。没有用 `browser.i18n`，因为它只跟随浏览器界面语言，用户无法自己选；文字表在 `lib/i18n.ts` | P0 |
 | F14 | 申请流程跟踪 | 面试 / Offer / 拒信等状态 | P2 |
 | F15 | 可选的 LLM 语义判断 | 仅用于关键词预警的语义判断，默认关闭，见 2.7 | P2 |
 
@@ -102,7 +102,7 @@ URL 只负责**去重键**，这部分是精确的：`(ats, company 标识, jobI
 | Ashby | JSON-LD | JSON-LD | 标题带前导空格，需要去掉 |
 | SmartRecruiters | `og:title` | `og:site_name` | 没有 JSON-LD |
 | Workable | JSON-LD | JSON-LD | |
-| iCIMS | 无 | URL 标识 | 岗位内容在 iframe 里，顶层页面读不到标题。记录暂时没有标题，待处理 |
+| iCIMS | 内层页面里的 JSON-LD | 内层页面里的 JSON-LD | 岗位内容和申请表都在同站点的 iframe 里。扩展会读取并监听可访问的 iframe |
 | Workday | JSON-LD；页面内跳转时取页面上的标题元素 | URL 标识 | JSON-LD 里的公司名是内部法人实体名（如 `2100 NVIDIA USA`），不采用 |
 
 **页面内跳转时这些标签是过期的。** Workday 从列表点进岗位时不重新加载页面，JSON-LD 不存在，`og:title` 仍是列表页的"CAREERS AT NVIDIA"，`document.title` 为空。所以这些标签只能在"整页加载到这个 URL"时使用。页面内跳转时，Workday 的标题取自 `[data-automation-id="jobPostingHeader"]`，并且要求旁边 `[data-automation-id="requisitionId"]` 显示的编号与 URL 解析出的岗位编号一致才采用，避免读到上一个岗位残留的标题。

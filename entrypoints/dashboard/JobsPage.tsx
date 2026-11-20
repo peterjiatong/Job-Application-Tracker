@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { categoryLabel, t, tCount } from '@/lib/i18n';
+import type { MessageKey } from '@/lib/i18n';
 import {
   EXPORT_VERSION,
   filterJobs,
@@ -17,13 +19,15 @@ import { Overview } from './Overview.tsx';
 
 const NO_FILTER: JobFilter = { query: '', status: '', ats: '', flag: '' };
 
-const COLUMNS: [key: SortKey, label: string][] = [
-  ['lastSeenAt', 'Last seen'],
-  ['company', 'Company'],
-  ['title', 'Title'],
-  ['ats', 'Site'],
-  ['status', 'Status'],
+const COLUMNS: [key: SortKey, label: MessageKey][] = [
+  ['lastSeenAt', 'column.lastSeen'],
+  ['company', 'column.company'],
+  ['title', 'column.title'],
+  ['ats', 'column.site'],
+  ['status', 'column.status'],
 ];
+
+const siteName = (ats: string) => (ats === 'other' ? t('sites.other') : ats);
 
 export function JobsPage({ jobs }: { jobs: JobRecord[] }) {
   const [filter, setFilter] = useState(NO_FILTER);
@@ -50,55 +54,59 @@ export function JobsPage({ jobs }: { jobs: JobRecord[] }) {
       <Overview jobs={jobs} />
 
       <section>
-        <h2>Jobs</h2>
+        <h2>{t('tab.jobs')}</h2>
         <AddUrl />
         <Transfer jobs={jobs} />
 
         <div className="filters">
           <input
             type="search"
-            aria-label="Search company and title"
-            placeholder="Search company and title"
+            aria-label={t('filter.search')}
+            placeholder={t('filter.search')}
             value={filter.query}
             onChange={(event) => setFilter({ ...filter, query: event.target.value })}
           />
           <select
-            aria-label="Status"
+            aria-label={t('column.status')}
             value={filter.status}
             onChange={(event) => setFilter({ ...filter, status: event.target.value as JobFilter['status'] })}
           >
-            <option value="">Any status</option>
-            <option value="viewed">Viewed</option>
-            <option value="applied">Applied</option>
+            <option value="">{t('filter.anyStatus')}</option>
+            <option value="viewed">{t('status.viewed')}</option>
+            <option value="applied">{t('status.applied')}</option>
           </select>
-          <select aria-label="Site" value={filter.ats} onChange={(event) => setFilter({ ...filter, ats: event.target.value })}>
-            <option value="">Any site</option>
+          <select aria-label={t('column.site')} value={filter.ats} onChange={(event) => setFilter({ ...filter, ats: event.target.value })}>
+            <option value="">{t('filter.anySite')}</option>
             {sites.map((site) => (
-              <option key={site}>{site}</option>
+              <option key={site} value={site}>
+                {siteName(site)}
+              </option>
             ))}
           </select>
-          <select aria-label="Warning" value={filter.flag} onChange={(event) => setFilter({ ...filter, flag: event.target.value })}>
-            <option value="">Any warning</option>
+          <select aria-label={t('filter.warning')} value={filter.flag} onChange={(event) => setFilter({ ...filter, flag: event.target.value })}>
+            <option value="">{t('filter.anyWarning')}</option>
             {flags.map((flag) => (
-              <option key={flag}>{flag}</option>
+              <option key={flag} value={flag}>
+                {categoryLabel(flag)}
+              </option>
             ))}
           </select>
           {filtering && (
             <button type="button" onClick={() => setFilter(NO_FILTER)}>
-              Clear
+              {t('filter.clear')}
             </button>
           )}
           <span className="hint count-shown">
-            {shown.length} of {jobs.length}
+            {t('filter.count', { shown: shown.length, total: jobs.length })}
           </span>
         </div>
 
         {jobs.length === 0 ? (
           <p className="empty">
-            No jobs recorded yet. Open a job posting on a supported site, or add its address above.
+            {t('jobs.empty')}
           </p>
         ) : shown.length === 0 ? (
-          <p className="empty">No jobs match these filters.</p>
+          <p className="empty">{t('jobs.noMatch')}</p>
         ) : (
           <div className="table-scroll">
             <table>
@@ -107,12 +115,12 @@ export function JobsPage({ jobs }: { jobs: JobRecord[] }) {
                   {COLUMNS.map(([key, label]) => (
                     <th key={key} aria-sort={sort.key !== key ? undefined : sort.descending ? 'descending' : 'ascending'}>
                       <button type="button" onClick={() => sortBy(key)}>
-                        {label}
+                        {t(label)}
                         {sort.key === key && (sort.descending ? ' ↓' : ' ↑')}
                       </button>
                     </th>
                   ))}
-                  <th>Warnings</th>
+                  <th>{t('column.warnings')}</th>
                   <th />
                 </tr>
               </thead>
@@ -147,8 +155,10 @@ function Row({ job }: { job: JobRecord }) {
     }
   };
   const remove = () => {
-    const name = job.title ? `${job.title} at ${job.company}` : job.company;
-    if (confirm(`Delete "${name}"? This cannot be undone.`)) void deleteJob(job.key);
+    const name = job.title
+      ? t('row.titleAtCompany', { title: job.title, company: job.company })
+      : job.company;
+    if (confirm(t('row.confirmDelete', { name }))) void deleteJob(job.key);
   };
   // Enter saves by leaving the field.
   const blurOnEnter = (event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -159,14 +169,19 @@ function Row({ job }: { job: JobRecord }) {
     <tr>
       <td
         className="nowrap"
-        title={`First seen ${formatDateTime(job.firstSeenAt)}${job.appliedAt ? `\nApplied ${formatDateTime(job.appliedAt)}` : ''}`}
+        title={[
+          t('row.firstSeen', { date: formatDateTime(job.firstSeenAt) }),
+          job.appliedAt && t('row.appliedAt', { date: formatDateTime(job.appliedAt) }),
+        ]
+          .filter(Boolean)
+          .join('\n')}
       >
         {formatDate(job.lastSeenAt)}
       </td>
       <td>
         <input
           className="cell"
-          aria-label="Company"
+          aria-label={t('column.company')}
           // The key makes the field show the stored value again after it changes elsewhere.
           key={job.company}
           defaultValue={job.company}
@@ -177,41 +192,41 @@ function Row({ job }: { job: JobRecord }) {
       <td className="wide">
         <input
           className="cell"
-          aria-label="Title"
-          placeholder="Add a title"
+          aria-label={t('column.title')}
+          placeholder={t('row.addTitle')}
           key={job.title ?? ''}
           defaultValue={job.title ?? ''}
           onBlur={(event) => rename('title', event.target.value)}
           onKeyDown={blurOnEnter}
         />
       </td>
-      <td>{job.ats}</td>
+      <td>{siteName(job.ats)}</td>
       <td>
         <select
-          aria-label="Status"
+          aria-label={t('column.status')}
           value={job.status}
           onChange={(event) => {
             const status = event.target.value as JobStatus;
             void update((latest) => withStatus(latest, status, Date.now()));
           }}
         >
-          <option value="viewed">Viewed</option>
-          <option value="applied">Applied</option>
+          <option value="viewed">{t('status.viewed')}</option>
+          <option value="applied">{t('status.applied')}</option>
         </select>
       </td>
       <td>
         {job.flags.map((flag) => (
           <span className="tag" key={flag}>
-            {flag}
+            {categoryLabel(flag)}
           </span>
         ))}
       </td>
       <td className="nowrap">
         <a href={job.url} target="_blank" rel="noreferrer">
-          Open
+          {t('row.open')}
         </a>
         <button type="button" className="quiet" onClick={remove}>
-          Delete
+          {t('row.delete')}
         </button>
       </td>
     </tr>
@@ -229,21 +244,21 @@ function AddUrl() {
     const now = Date.now();
     const record = recordForUrl(url.trim(), now, 'manual');
     if (!record) {
-      return setMessage({ text: 'That is not a web address. It should start with https://', error: true });
+      return setMessage({ text: t('add.invalid'), error: true });
     }
     if (await getJob(record.key)) {
-      return setMessage({ text: 'This job is already recorded.', error: true });
+      return setMessage({ text: t('add.exists'), error: true });
     }
     await saveJob(applied ? withStatus(record, 'applied', now) : record);
     setUrl('');
-    setMessage({ text: 'Added.', error: false });
+    setMessage({ text: t('add.done'), error: false });
   };
 
   return (
     <form className="add" onSubmit={(event) => void add(event)}>
       <input
-        aria-label="Job address"
-        placeholder="Paste the address of a job posting"
+        aria-label={t('add.label')}
+        placeholder={t('add.placeholder')}
         value={url}
         onChange={(event) => {
           setUrl(event.target.value);
@@ -252,10 +267,10 @@ function AddUrl() {
       />
       <label>
         <input type="checkbox" checked={applied} onChange={(event) => setApplied(event.target.checked)} />
-        Already applied
+        {t('add.applied')}
       </label>
       <button type="submit" disabled={!url.trim()}>
-        Add
+        {t('add.button')}
       </button>
       {message && (
         <p className={message.error ? 'error' : 'hint'} role="status">
@@ -307,28 +322,22 @@ function Transfer({ jobs }: { jobs: JobRecord[] }) {
     await saveJobs(records);
     if (result.settings) await saveSettings(result.settings);
 
-    const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
-    const parts = [
-      `Imported ${count(records.length - merged, 'new job', 'new jobs')}`,
-      `merged ${merged} with jobs already here`,
-    ];
-    if (result.skipped > 0) {
-      parts.push(`skipped ${count(result.skipped, 'entry that was', 'entries that were')} not valid`);
-    }
-    if (result.settings) parts.push('restored the settings');
-    setMessage({ text: `${parts.join(', ')}.`, error: false });
+    const parts = [tCount('import.new', records.length - merged), t('import.merged', { n: merged })];
+    if (result.skipped > 0) parts.push(tCount('import.skipped', result.skipped));
+    if (result.settings) parts.push(t('import.settings'));
+    setMessage({ text: parts.join(t('list.separator')) + t('list.end'), error: false });
   };
 
   return (
     <div className="transfer">
       <button type="button" onClick={() => void exportJson()}>
-        Export JSON
+        {t('transfer.exportJson')}
       </button>
       <button type="button" onClick={exportCsv}>
-        Export CSV
+        {t('transfer.exportCsv')}
       </button>
       <button type="button" onClick={() => picker.current?.click()}>
-        Import JSON
+        {t('transfer.importJson')}
       </button>
       <input
         ref={picker}

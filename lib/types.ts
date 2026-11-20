@@ -1,3 +1,5 @@
+import type { Language } from './i18n';
+
 export type JobStatus = 'viewed' | 'applied';
 
 export type JobRecord = {
@@ -16,6 +18,7 @@ export type JobRecord = {
 };
 
 export type Settings = {
+    language: Language;
     // auto: record a job as soon as it is opened. manual: ask first.
     mode: 'auto' | 'manual';
     // Whether job descriptions are scanned for restrictive wording.

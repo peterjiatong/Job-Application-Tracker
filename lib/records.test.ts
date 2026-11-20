@@ -115,7 +115,7 @@ describe('parseImport', () => {
   const file = (jobs: unknown[], settings?: unknown) => JSON.stringify({ version: 1, jobs, settings });
 
   it('reads back valid records and settings', () => {
-    const settings = { mode: 'manual', keywordsEnabled: false, rules: DEFAULT_RULES };
+    const settings = { language: 'zh', mode: 'manual', keywordsEnabled: false, rules: DEFAULT_RULES };
     const result = parseImport(file([job(), job({ key: 'x', status: 'applied', appliedAt: 5 })], settings));
     expect(result).toEqual({
       jobs: [job(), job({ key: 'x', status: 'applied', appliedAt: 5 })],
@@ -140,6 +140,11 @@ describe('parseImport', () => {
   it('drops fields it does not know', () => {
     const result = parseImport(file([{ ...job(), extra: '<script>' }]));
     expect('jobs' in result && result.jobs[0]).toEqual(job());
+  });
+
+  it('accepts settings from before the language setting existed', () => {
+    const old = { mode: 'auto', keywordsEnabled: true, rules: DEFAULT_RULES };
+    expect(parseImport(file([], old))).toMatchObject({ settings: { ...old, language: 'auto' } });
   });
 
   it('ignores settings that are not valid', () => {

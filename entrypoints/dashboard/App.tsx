@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { t } from '@/lib/i18n';
 import { listJobs, onJobsChanged } from '@/lib/store';
 import type { JobRecord } from '@/lib/types';
 import { JobsPage } from './JobsPage.tsx';
@@ -19,6 +20,9 @@ function useJobs(): JobRecord[] | null {
 export default function App() {
   const [tab, setTab] = useState<'jobs' | 'settings'>('jobs');
   const jobs = useJobs();
+  // Changing the language changes no data that React watches, so the settings page asks for
+  // the whole page to be drawn again.
+  const [, redraw] = useState(0);
 
   return (
     <main>
@@ -26,14 +30,18 @@ export default function App() {
         <h1>Job Application Tracker</h1>
         <nav>
           <button type="button" aria-current={tab === 'jobs'} onClick={() => setTab('jobs')}>
-            Jobs
+            {t('tab.jobs')}
           </button>
           <button type="button" aria-current={tab === 'settings'} onClick={() => setTab('settings')}>
-            Settings
+            {t('tab.settings')}
           </button>
         </nav>
       </header>
-      {tab === 'settings' ? <SettingsPage /> : jobs && <JobsPage jobs={jobs} />}
+      {tab === 'settings' ? (
+        <SettingsPage onLanguageChange={() => redraw((n) => n + 1)} />
+      ) : (
+        jobs && <JobsPage jobs={jobs} />
+      )}
     </main>
   );
 }
