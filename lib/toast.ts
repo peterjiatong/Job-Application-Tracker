@@ -54,6 +54,28 @@ const CSS = `
 .action:hover {
     background: #eaeef2;
 }
+.warnings {
+    max-height: 40vh;
+    margin-top: 10px;
+    overflow-y: auto;
+}
+.warning {
+    padding: 8px 10px;
+    border: 1px solid #eac54f;
+    border-radius: 6px;
+    background: #fff8c5;
+    color: #1f2328;
+}
+.warning + .warning {
+    margin-top: 6px;
+}
+.warning-category {
+    font-weight: 600;
+}
+.warning-snippet {
+    margin-top: 2px;
+    font-size: 13px;
+}
 .action:focus-visible,
 .close:focus-visible {
     outline: 2px solid #0969da;
@@ -72,6 +94,11 @@ export type ToastOptions = {
     actions?: ToastAction[];
 };
 
+export type ToastWarning = {
+    category: string;
+    snippet: string;
+};
+
 function el(tag: string, className: string, text = ''): HTMLElement {
     const node = document.createElement(tag);
     node.className = className;
@@ -81,18 +108,33 @@ function el(tag: string, className: string, text = ''): HTMLElement {
 }
 
 let dismissCurrent: (() => void) | undefined;
+// What the toast last showed, kept so it can be drawn again when the warnings change.
+let lastOptions: ToastOptions | undefined;
+let warnings: ToastWarning[] = [];
 
 export function dismissToast(): void {
     dismissCurrent?.();
+    lastOptions = undefined;
+}
+
+// Sets the warnings shown inside the toast: in the one on screen now and in every later one,
+// until they are set again. Warnings usually arrive after the toast, because the page text is
+// scanned late. If the user already closed the toast with × and there is something to warn
+// about, the toast comes back.
+export function setToastWarnings(list: ToastWarning[]): void {
+    warnings = list;
+    if (lastOptions && (isToastOpen() || list.length > 0)) showToast(lastOptions);
 }
 
 export function isToastOpen(): boolean {
     return dismissCurrent !== undefined;
 }
 
-export function showToast({ title, body, actions = [] }: ToastOptions): void {
+export function showToast(options: ToastOptions): void {
+    const { title, body, actions = [] } = options;
     // At most one toast per page.
     dismissCurrent?.();
+    lastOptions = options;
 
     const host = document.createElement('div');
     host.id = 'jat-toast';
@@ -125,6 +167,23 @@ export function showToast({ title, body, actions = [] }: ToastOptions): void {
     toast.setAttribute('role', 'status');
     toast.append(header, el('div', 'body', body));
 
+    if (warnings.length > 0) {
+        // One box per category, holding every snippet found for it.
+        const boxes = new Map<string, HTMLElement>();
+        for (const { category, snippet } of warnings) {
+            let box = boxes.get(category);
+            if (!box) {
+                box = el('div', 'warning');
+                box.append(el('div', 'warning-category', `⚠ ${category}`));
+                boxes.set(category, box);
+            }
+            box.append(el('div', 'warning-snippet', `“${snippet}”`));
+        }
+        const list = el('div', 'warnings');
+        list.append(...boxes.values());
+        toast.append(list);
+    }
+
     if (actions.length > 0) {
         const row = el('div', 'actions');
         for (const action of actions) {
@@ -132,6 +191,8 @@ export function showToast({ title, body, actions = [] }: ToastOptions): void {
             // Every action also closes the toast.
             button.addEventListener('click', () => {
                 dismiss();
+                // The action decides what comes next; this toast must not come back.
+                lastOptions = undefined;
                 action.onClick();
             });
             row.append(button);

@@ -3,7 +3,7 @@ import type { ParsedJob } from '@/lib/ats';
 import { DEFAULT_RULES, scan } from '@/lib/keywords';
 import { pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
-import { dismissToast, isToastOpen, showToast } from '@/lib/toast';
+import { dismissToast, isToastOpen, setToastWarnings, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
 
 export default defineContentScript({
@@ -77,7 +77,7 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   const job = parseJobUrl(url);
   if (!job) {
     setCurrentKey(null);
-    dismissToast();
+    forgetPage();
     return;
   }
 
@@ -85,11 +85,27 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   // sameJob: another page of the job we were already on, e.g. the next step of an application.
   const sameJob = key === currentKey;
   setCurrentKey(key);
-  if (!sameJob) dismissToast();
+  if (!sameJob) forgetPage();
 
   await showJob(job, key, url, sameJob, fresh);
   // Later pages of the same job are application forms, not the job description. Scan once.
   if (!sameJob && currentKey === key) await flagKeywords(job, key, fresh);
+}
+
+// Warning categories found on the page being shown.
+let pageFlags: string[] = [];
+
+// Clears what was on screen for the previous job.
+function forgetPage(): void {
+  dismissToast();
+  setToastWarnings([]);
+  pageFlags = [];
+}
+
+// Saves a record with the page's flags added. Toast buttons hold records that were built before
+// the page was scanned, so saving those as they are would drop the flags.
+function saveWithFlags(record: JobRecord): Promise<void> {
+  return saveJob({ ...record, flags: [...new Set([...record.flags, ...pageFlags])] });
 }
 
 // Records the job or looks it up, and shows the toast that fits.
@@ -158,8 +174,8 @@ async function showJob(
   if (currentKey === key) showViewedToast(named);
 }
 
-// Scans the job description for restrictive wording and stores the categories found in the
-// record's `flags`.
+// Scans the job description for restrictive wording, shows what it finds in the toast, and
+// stores the categories in the record's `flags`.
 async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promise<void> {
   // After an in-page move on Workday, the previous job's text stays on screen for a moment.
   if (!fresh && job.ats === 'workday') {
@@ -168,12 +184,16 @@ async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promis
   await pageQuiet(document, 1000, 8000);
   if (currentKey !== key) return;
 
-  const found = scan(pageText(document), DEFAULT_RULES).map((hit) => hit.category);
+  const hits = scan(pageText(document), DEFAULT_RULES);
+  pageFlags = [...new Set(hits.map((hit) => hit.category))];
+  setToastWarnings(hits);
+
   // Read the record again: the user may have changed it while we waited. Flags are only ever
   // added, so opening an application form (which has no job description) does not clear them.
+  // No record yet (manual mode): the flags are saved when the user clicks Record.
   const record = await getJob(key);
   if (!record) return;
-  const flags = [...new Set([...record.flags, ...found])];
+  const flags = [...new Set([...record.flags, ...pageFlags])];
   if (flags.length !== record.flags.length) await saveJob({ ...record, flags });
 }
 
@@ -221,7 +241,7 @@ function showAskToast(record: JobRecord): void {
     actions: [
       {
         label: 'Record',
-        onClick: () => void saveJob(record).then(() => showViewedToast(record)),
+        onClick: () => void saveWithFlags(record).then(() => showViewedToast(record)),
       },
       // Ignore saves nothing, so the question comes back on the next visit.
       { label: 'Ignore', onClick: () => {} },
@@ -264,7 +284,7 @@ async function markApplied(
   record: JobRecord,
   showPrevious: (record: JobRecord) => void,
 ): Promise<void> {
-  await saveJob({ ...record, status: 'applied', appliedAt: Date.now() });
+  await saveWithFlags({ ...record, status: 'applied', appliedAt: Date.now() });
   showToast({
     title: 'Marked as applied',
     body: describe(record, 'Saved as applied.'),
@@ -272,7 +292,7 @@ async function markApplied(
       {
         label: 'Undo',
         // `record` is still the viewed version, so saving it again undoes the change.
-        onClick: () => void saveJob(record).then(() => showPrevious(record)),
+        onClick: () => void saveWithFlags(record).then(() => showPrevious(record)),
       },
     ],
   });
