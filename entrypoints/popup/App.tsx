@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { formatDate } from '@/lib/format';
 import { t } from '@/lib/i18n';
 import { recordForUrl, withStatus } from '@/lib/records';
-import { getJob, getSettings, saveJob, saveSettings } from '@/lib/store';
+import { addToCompanies, getJob, getSettings, saveJob, saveSettings } from '@/lib/store';
 import type { JobRecord, Settings } from '@/lib/types';
 
 // What the popup knows about the tab it was opened on.
@@ -82,6 +82,9 @@ export default function App() {
         </>
       )}
 
+      {/* On a supported job page the company is known and offered; elsewhere the user types it. */}
+      <AvoidCompany suggestion={shown && shown.ats !== 'other' ? shown.company : ''} />
+
       <label>
         <input
           type="checkbox"
@@ -94,5 +97,38 @@ export default function App() {
         {t('popup.dashboard')}
       </button>
     </>
+  );
+}
+
+// Adds a company to the list of companies the user is not interested in.
+function AvoidCompany({ suggestion }: { suggestion: string }) {
+  const [name, setName] = useState(suggestion);
+  const [message, setMessage] = useState<string>();
+
+  const add = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const added = await addToCompanies([name]);
+    setMessage(added > 0 ? t('popup.avoid.added') : t('popup.avoid.exists'));
+  };
+
+  return (
+    <form className="avoid" onSubmit={(event) => void add(event)}>
+      <span>{t('popup.avoid.label')}</span>
+      <div>
+        <input
+          aria-label={t('popup.avoid.placeholder')}
+          placeholder={t('popup.avoid.placeholder')}
+          value={name}
+          onChange={(event) => {
+            setName(event.target.value);
+            setMessage(undefined);
+          }}
+        />
+        <button type="submit" disabled={!name.trim()}>
+          {t('popup.avoid.add')}
+        </button>
+      </div>
+      {message && <p role="status">{message}</p>}
+    </form>
   );
 }

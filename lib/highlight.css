@@ -1,0 +1,5 @@
+/* Names of companies the user is not interested in. The ranges are set in highlight.ts. */
+::highlight(jat-avoid) {
+  background-color: #ff6b6b;
+  color: #000;
+}

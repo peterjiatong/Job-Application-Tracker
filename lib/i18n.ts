@@ -127,6 +127,29 @@ const en = {
     'rule.error.category': 'Give the rule a category.',
     'rule.error.pattern': 'Give the rule a pattern.',
     'rule.error.invalid': 'Not a valid pattern: {message}',
+
+    // Companies the user is not interested in
+    'tab.companies': 'Companies',
+    'avoid.title': 'Companies I am not interested in',
+    'avoid.enable': 'Highlight these companies in red',
+    'avoid.enable.hint':
+        'Works on LinkedIn, Indeed, Glassdoor, Handshake, ZipRecruiter and the supported application sites. Upper and lower case do not matter, and a name only matches as whole words.',
+    'avoid.placeholder': 'Company names, one per line',
+    'avoid.added.one': 'Added {n} company.',
+    'avoid.added.many': 'Added {n} companies.',
+    'avoid.nothingNew': 'Nothing new to add.',
+    'avoid.empty':
+        'No companies yet. Add one here or from the toolbar popup, or select a name on a web page and right-click it.',
+    'avoid.count.one': '{n} company',
+    'avoid.count.many': '{n} companies',
+    'avoid.remove': 'Remove {name}',
+    'menu.avoid': 'Not interested in "%s"',
+    'popup.avoid.label': 'Not interested in a company',
+    'popup.avoid.placeholder': 'Company name',
+    'popup.avoid.add': 'Add to list',
+    'popup.avoid.added': 'Added. It will be highlighted in red.',
+    'popup.avoid.exists': 'Already on the list.',
+    'import.companies': 'companies added to the list: {n}',
 } as const;
 
 export type MessageKey = keyof typeof en;
@@ -251,6 +274,27 @@ const zh: Record<MessageKey, string> = {
     'rule.error.category': '请填写类别。',
     'rule.error.pattern': '请填写规则。',
     'rule.error.invalid': '规则无效：{message}',
+
+    'tab.companies': '公司',
+    'avoid.title': '不感兴趣的公司',
+    'avoid.enable': '用红色高亮这些公司',
+    'avoid.enable.hint':
+        '在 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter 以及受支持的招聘系统网站上生效。不区分大小写，英文名称只匹配完整的词。',
+    'avoid.placeholder': '公司名称，每行一个',
+    'avoid.added.one': '已添加 {n} 家公司。',
+    'avoid.added.many': '已添加 {n} 家公司。',
+    'avoid.nothingNew': '没有新的公司可添加。',
+    'avoid.empty': '还没有公司。可以在这里或工具栏弹出窗口里添加，也可以在网页上选中公司名后点右键。',
+    'avoid.count.one': '{n} 家公司',
+    'avoid.count.many': '{n} 家公司',
+    'avoid.remove': '移除 {name}',
+    'menu.avoid': '对“%s”不感兴趣',
+    'popup.avoid.label': '对某家公司不感兴趣',
+    'popup.avoid.placeholder': '公司名称',
+    'popup.avoid.add': '加入列表',
+    'popup.avoid.added': '已加入，之后会用红色高亮。',
+    'popup.avoid.exists': '已经在列表里了。',
+    'import.companies': '向公司列表添加了 {n} 个',
 };
 
 export const MESSAGES = { en, zh };
@@ -276,7 +320,10 @@ export function t(key: MessageKey, values: Record<string, string | number> = {})
 
 // Like t, for text that differs between one and several in English: picks `<key>.one` or
 // `<key>.many` by `n`.
-export function tCount(key: 'import.new' | 'import.skipped', n: number): string {
+export function tCount(
+    key: 'import.new' | 'import.skipped' | 'avoid.added' | 'avoid.count',
+    n: number,
+): string {
     return t(`${key}.${n === 1 ? 'one' : 'many'}`, { n });
 }
 

@@ -6,6 +6,7 @@ export default defineConfig({
   manifest: {
     name: 'Job Application Tracker',
     // activeTab: lets the toolbar popup read the address of the tab it was opened on.
-    permissions: ['storage', 'activeTab'],
+    // contextMenus: the right-click entry that adds a selected company name to the list.
+    permissions: ['storage', 'activeTab', 'contextMenus'],
   },
 });

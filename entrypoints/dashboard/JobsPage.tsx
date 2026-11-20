@@ -13,7 +13,16 @@ import {
   withStatus,
 } from '@/lib/records';
 import type { ExportFile, JobFilter, SortKey } from '@/lib/records';
-import { deleteJob, getJob, getSettings, saveJob, saveJobs, saveSettings } from '@/lib/store';
+import {
+  addToCompanies,
+  deleteJob,
+  getCompanies,
+  getJob,
+  getSettings,
+  saveJob,
+  saveJobs,
+  saveSettings,
+} from '@/lib/store';
 import type { JobRecord, JobStatus } from '@/lib/types';
 import { Overview } from './Overview.tsx';
 
@@ -301,6 +310,7 @@ function Transfer({ jobs }: { jobs: JobRecord[] }) {
       exportedAt: new Date().toISOString(),
       settings: await getSettings(),
       jobs,
+      companies: await getCompanies(),
     };
     download(`job-application-tracker-${day}.json`, 'application/json', JSON.stringify(file, null, 2));
   };
@@ -321,10 +331,12 @@ function Transfer({ jobs }: { jobs: JobRecord[] }) {
     });
     await saveJobs(records);
     if (result.settings) await saveSettings(result.settings);
+    const companiesAdded = await addToCompanies(result.companies);
 
     const parts = [tCount('import.new', records.length - merged), t('import.merged', { n: merged })];
     if (result.skipped > 0) parts.push(tCount('import.skipped', result.skipped));
     if (result.settings) parts.push(t('import.settings'));
+    if (companiesAdded > 0) parts.push(t('import.companies', { n: companiesAdded }));
     setMessage({ text: parts.join(t('list.separator')) + t('list.end'), error: false });
   };
 

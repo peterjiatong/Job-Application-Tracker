@@ -1,10 +1,21 @@
+import '@/lib/highlight.css';
 import { jobKey, normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
+import { companyPattern } from '@/lib/companies';
 import { formatDate, formatDateTime } from '@/lib/format';
+import { highlightText } from '@/lib/highlight';
 import { categoryLabel, setLanguage, t } from '@/lib/i18n';
 import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
-import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
+import {
+  deleteJob,
+  getCompanies,
+  getJob,
+  getSettings,
+  onCompaniesChanged,
+  onSettingsChanged,
+  saveJob,
+} from '@/lib/store';
 import {
   dismissToast,
   isToastOpen,
@@ -28,8 +39,17 @@ export default defineContentScript({
     'https://*.icims.com/*',
     'https://*.myworkdayjobs.com/*',
     'https://*.myworkdaysite.com/*',
+    // Job boards. No jobs are recorded here (their addresses are not job pages to parseJobUrl);
+    // the script only highlights companies the user is not interested in.
+    'https://www.linkedin.com/*',
+    'https://*.indeed.com/*',
+    'https://*.glassdoor.com/*',
+    'https://*.joinhandshake.com/*',
+    'https://www.ziprecruiter.com/*',
   ],
   main(ctx) {
+    void highlightCompanies();
+
     currentKey = previousPageKey();
     let handledUrl = location.href;
     void handlePage(handledUrl, true);
@@ -53,6 +73,30 @@ export default defineContentScript({
     watchFrames(onClick);
   },
 });
+
+// Highlights the companies the user is not interested in, and keeps the highlighting current:
+// when the list or the setting changes, and as the page adds content (search results that load
+// while scrolling).
+async function highlightCompanies(): Promise<void> {
+  let pattern: RegExp | null = null;
+  const reload = async () => {
+    const [settings, companies] = await Promise.all([getSettings(), getCompanies()]);
+    pattern = settings.highlightEnabled ? companyPattern(companies) : null;
+    highlightText(document, pattern);
+  };
+  await reload();
+  onCompaniesChanged(() => void reload());
+  onSettingsChanged(() => void reload());
+
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  new MutationObserver(() => {
+    if (!pattern) return;
+    // ponytail: scans the whole page again half a second after the last change. Scan only the
+    // changed parts if this ever shows up as slow on very long pages.
+    clearTimeout(timer);
+    timer = setTimeout(() => highlightText(document, pattern), 500);
+  }).observe(document, { childList: true, subtree: true, characterData: true });
+}
 
 const SESSION_KEY = 'jat:currentJob';
 

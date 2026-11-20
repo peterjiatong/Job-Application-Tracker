@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { t } from '@/lib/i18n';
 import { listJobs, onJobsChanged } from '@/lib/store';
 import type { JobRecord } from '@/lib/types';
+import { CompaniesPage } from './CompaniesPage.tsx';
 import { JobsPage } from './JobsPage.tsx';
 import { SettingsPage } from './SettingsPage.tsx';
 
@@ -18,7 +19,7 @@ function useJobs(): JobRecord[] | null {
 }
 
 export default function App() {
-  const [tab, setTab] = useState<'jobs' | 'settings'>('jobs');
+  const [tab, setTab] = useState<'jobs' | 'companies' | 'settings'>('jobs');
   const jobs = useJobs();
   // Changing the language changes no data that React watches, so the settings page asks for
   // the whole page to be drawn again.
@@ -32,16 +33,17 @@ export default function App() {
           <button type="button" aria-current={tab === 'jobs'} onClick={() => setTab('jobs')}>
             {t('tab.jobs')}
           </button>
+          <button type="button" aria-current={tab === 'companies'} onClick={() => setTab('companies')}>
+            {t('tab.companies')}
+          </button>
           <button type="button" aria-current={tab === 'settings'} onClick={() => setTab('settings')}>
             {t('tab.settings')}
           </button>
         </nav>
       </header>
-      {tab === 'settings' ? (
-        <SettingsPage onLanguageChange={() => redraw((n) => n + 1)} />
-      ) : (
-        jobs && <JobsPage jobs={jobs} />
-      )}
+      {tab === 'settings' && <SettingsPage onLanguageChange={() => redraw((n) => n + 1)} />}
+      {tab === 'companies' && <CompaniesPage />}
+      {tab === 'jobs' && jobs && <JobsPage jobs={jobs} />}
     </main>
   );
 }

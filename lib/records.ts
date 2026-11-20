@@ -1,4 +1,5 @@
 import { jobKey, normalizeUrl, parseJobUrl } from './ats';
+import { cleanCompanyName } from './companies';
 import { t } from './i18n';
 import { ruleError } from './keywords';
 import type { JobRecord, JobStatus, KeywordRule, Settings } from './types';
@@ -104,6 +105,7 @@ export type ExportFile = {
     exportedAt: string;
     settings: Settings;
     jobs: JobRecord[];
+    companies: string[];
 };
 
 const isText = (value: unknown): value is string => typeof value === 'string';
@@ -158,6 +160,7 @@ function cleanSettings(value: unknown): Settings | undefined {
         (v.language === undefined || v.language === 'auto' || v.language === 'en' || v.language === 'zh') &&
         (v.mode === 'auto' || v.mode === 'manual') &&
         typeof v.keywordsEnabled === 'boolean' &&
+        (v.highlightEnabled === undefined || typeof v.highlightEnabled === 'boolean') &&
         Array.isArray(rules) &&
         rules.every(
             (rule) =>
@@ -173,12 +176,13 @@ function cleanSettings(value: unknown): Settings | undefined {
         mode: v.mode as Settings['mode'],
         keywordsEnabled: v.keywordsEnabled as boolean,
         rules: (rules as KeywordRule[]).map(({ category, pattern }) => ({ category, pattern })),
+        highlightEnabled: (v.highlightEnabled as boolean | undefined) ?? true,
     };
 }
 
 export type ImportResult =
     | { error: string }
-    | { jobs: JobRecord[]; skipped: number; settings: Settings | undefined };
+    | { jobs: JobRecord[]; skipped: number; settings: Settings | undefined; companies: string[] };
 
 // Reads the text of a file made by the JSON export. Entries that are not valid records are
 // counted in `skipped` and left out; nothing in the file is trusted as it is.
@@ -195,7 +199,17 @@ export function parseImport(text: string): ImportResult {
     }
 
     const jobs = file.jobs.map(cleanJob).filter((job) => job !== null);
-    return { jobs, skipped: file.jobs.length - jobs.length, settings: cleanSettings(file.settings) };
+    // Files exported before the company list existed have none.
+    const companies = (Array.isArray(file.companies) ? file.companies : [])
+        .filter(isText)
+        .map(cleanCompanyName)
+        .filter(Boolean);
+    return {
+        jobs,
+        skipped: file.jobs.length - jobs.length,
+        settings: cleanSettings(file.settings),
+        companies,
+    };
 }
 
 // Combines an imported record with the one already stored under the same key. Nothing the user

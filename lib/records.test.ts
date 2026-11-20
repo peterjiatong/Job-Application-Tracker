@@ -112,15 +112,23 @@ describe('toCsv', () => {
 });
 
 describe('parseImport', () => {
-  const file = (jobs: unknown[], settings?: unknown) => JSON.stringify({ version: 1, jobs, settings });
+  const file = (jobs: unknown[], settings?: unknown, companies?: unknown) =>
+    JSON.stringify({ version: 1, jobs, settings, companies });
 
   it('reads back valid records and settings', () => {
-    const settings = { language: 'zh', mode: 'manual', keywordsEnabled: false, rules: DEFAULT_RULES };
+    const settings = {
+      language: 'zh',
+      mode: 'manual',
+      keywordsEnabled: false,
+      rules: DEFAULT_RULES,
+      highlightEnabled: false,
+    };
     const result = parseImport(file([job(), job({ key: 'x', status: 'applied', appliedAt: 5 })], settings));
     expect(result).toEqual({
       jobs: [job(), job({ key: 'x', status: 'applied', appliedAt: 5 })],
       skipped: 0,
       settings,
+      companies: [],
     });
   });
 
@@ -144,7 +152,14 @@ describe('parseImport', () => {
 
   it('accepts settings from before the language setting existed', () => {
     const old = { mode: 'auto', keywordsEnabled: true, rules: DEFAULT_RULES };
-    expect(parseImport(file([], old))).toMatchObject({ settings: { ...old, language: 'auto' } });
+    expect(parseImport(file([], old))).toMatchObject({
+      settings: { ...old, language: 'auto', highlightEnabled: true },
+    });
+  });
+
+  it('reads the company list and drops entries that are not names', () => {
+    const result = parseImport(file([], undefined, [' Acme  Corp ', 7, '', 'x'.repeat(200), 'Globex']));
+    expect(result).toMatchObject({ companies: ['Acme Corp', 'Globex'] });
   });
 
   it('ignores settings that are not valid', () => {

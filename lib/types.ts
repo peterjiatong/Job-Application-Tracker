@@ -24,6 +24,8 @@ export type Settings = {
     // Whether job descriptions are scanned for restrictive wording.
     keywordsEnabled: boolean;
     rules: KeywordRule[];
+    // Whether companies on the "not interested" list are highlighted on web pages.
+    highlightEnabled: boolean;
 };
 
 // One keyword rule. `pattern` is a regular expression, kept as text so it can be stored in

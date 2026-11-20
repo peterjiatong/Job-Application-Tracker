@@ -1,4 +1,5 @@
 import { browser } from 'wxt/browser';
+import { addCompanies } from './companies';
 import { DEFAULT_RULES } from './keywords';
 import type { JobRecord, Settings } from './types';
 
@@ -21,16 +22,28 @@ export async function saveJobs(records: JobRecord[]): Promise<void> {
     );
 }
 
-// Calls `callback` whenever a job record is added, changed or removed, in any tab.
+// Calls `callback` whenever a stored item whose key passes `test` changes, in any tab.
 // Returns a function that stops listening.
-export function onJobsChanged(callback: () => void): () => void {
+function watch(test: (storageKey: string) => boolean, callback: () => void): () => void {
     const listener = (changes: Record<string, unknown>, area: string) => {
-        if (area === 'local' && Object.keys(changes).some((key) => key.startsWith(JOB_PREFIX))) {
-            callback();
-        }
+        if (area === 'local' && Object.keys(changes).some(test)) callback();
     };
     browser.storage.onChanged.addListener(listener);
     return () => browser.storage.onChanged.removeListener(listener);
+}
+
+// A job record was added, changed or removed.
+export function onJobsChanged(callback: () => void): () => void {
+    return watch((key) => key.startsWith(JOB_PREFIX), callback);
+}
+
+export function onSettingsChanged(callback: () => void): () => void {
+    return watch((key) => key === SETTINGS_KEY, callback);
+}
+
+// The list of companies the user is not interested in changed.
+export function onCompaniesChanged(callback: () => void): () => void {
+    return watch((key) => key === COMPANIES_KEY, callback);
 }
 
 export async function deleteJob(key: string): Promise<void> {
@@ -50,6 +63,7 @@ const DEFAULT_SETTINGS: Settings = {
     mode: 'auto',
     keywordsEnabled: true,
     rules: DEFAULT_RULES,
+    highlightEnabled: true,
 };
 
 export async function getSettings(): Promise<Settings> {
@@ -63,4 +77,24 @@ export async function saveSettings(settings: Settings): Promise<void> {
     const { rules, ...rest } = settings;
     const customRules = JSON.stringify(rules) !== JSON.stringify(DEFAULT_RULES);
     await browser.storage.local.set({ [SETTINGS_KEY]: customRules ? settings : rest });
+}
+
+const COMPANIES_KEY = 'companies';
+
+// The companies the user is not interested in, as names.
+export async function getCompanies(): Promise<string[]> {
+    const result = await browser.storage.local.get(COMPANIES_KEY);
+    return (result[COMPANIES_KEY] as string[] | undefined) ?? [];
+}
+
+export async function saveCompanies(names: string[]): Promise<void> {
+    await browser.storage.local.set({ [COMPANIES_KEY]: names });
+}
+
+// Adds names to the list and returns how many were new.
+export async function addToCompanies(names: string[]): Promise<number> {
+    const list = await getCompanies();
+    const next = addCompanies(list, names);
+    if (next !== list) await saveCompanies(next);
+    return next.length - list.length;
 }
