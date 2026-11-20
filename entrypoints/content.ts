@@ -1,5 +1,7 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
-import { readJobInfo, readWorkdayTitle } from '@/lib/page';
+import type { ParsedJob } from '@/lib/ats';
+import { DEFAULT_RULES, scan } from '@/lib/keywords';
+import { pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { dismissToast, isToastOpen, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
@@ -85,6 +87,19 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   setCurrentKey(key);
   if (!sameJob) dismissToast();
 
+  await showJob(job, key, url, sameJob, fresh);
+  // Later pages of the same job are application forms, not the job description. Scan once.
+  if (!sameJob && currentKey === key) await flagKeywords(job, key, fresh);
+}
+
+// Records the job or looks it up, and shows the toast that fits.
+async function showJob(
+  job: ParsedJob,
+  key: string,
+  url: string,
+  sameJob: boolean,
+  fresh: boolean,
+): Promise<void> {
   const existing = await getJob(key);
   if (existing) {
     // On later pages of the same job, keep offering "Mark as applied" while the job is only
@@ -141,6 +156,25 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
   const named = await withPageInfo(record, fresh);
   if (named !== record) await saveJob(named);
   if (currentKey === key) showViewedToast(named);
+}
+
+// Scans the job description for restrictive wording and stores the categories found in the
+// record's `flags`.
+async function flagKeywords(job: ParsedJob, key: string, fresh: boolean): Promise<void> {
+  // After an in-page move on Workday, the previous job's text stays on screen for a moment.
+  if (!fresh && job.ats === 'workday') {
+    await waitFor(() => readWorkdayTitle(document, job.jobId), 5000);
+  }
+  await pageQuiet(document, 1000, 8000);
+  if (currentKey !== key) return;
+
+  const found = scan(pageText(document), DEFAULT_RULES).map((hit) => hit.category);
+  // Read the record again: the user may have changed it while we waited. Flags are only ever
+  // added, so opening an application form (which has no job description) does not clear them.
+  const record = await getJob(key);
+  if (!record) return;
+  const flags = [...new Set([...record.flags, ...found])];
+  if (flags.length !== record.flags.length) await saveJob({ ...record, flags });
 }
 
 // Adds the job title, and the company name where the page gives a good one. A record that

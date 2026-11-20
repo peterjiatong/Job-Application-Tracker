@@ -77,3 +77,40 @@ export function readWorkdayTitle(doc: Document, jobId: string): string | undefin
     if (!shownId.includes(jobId)) return undefined;
     return text(doc.querySelector('[data-automation-id="jobPostingHeader"]')?.textContent);
 }
+
+// Resolves once the page has not changed for `quietMs`, or after `timeoutMs` at the latest.
+// Used to let late-loading content (the job description on Workday) arrive before reading it.
+export function pageQuiet(doc: Document, quietMs: number, timeoutMs: number): Promise<void> {
+    return new Promise((resolve) => {
+        const done = () => {
+            observer.disconnect();
+            clearTimeout(quietTimer);
+            clearTimeout(limitTimer);
+            resolve();
+        };
+        const observer = new MutationObserver(() => {
+            clearTimeout(quietTimer);
+            quietTimer = setTimeout(done, quietMs);
+        });
+        let quietTimer = setTimeout(done, quietMs);
+        const limitTimer = setTimeout(done, timeoutMs);
+        observer.observe(doc.documentElement, {
+            childList: true,
+            subtree: true,
+            characterData: true,
+        });
+    });
+}
+
+// The visible text of the page, including frames it is allowed to read. iCIMS shows the job
+// description in a frame of its own.
+export function pageText(doc: Document): string {
+    const frames = [...doc.querySelectorAll('iframe')].map((frame) => {
+        try {
+            return frame.contentDocument?.body?.innerText ?? '';
+        } catch {
+            return ''; // A frame from another site cannot be read.
+        }
+    });
+    return [doc.body.innerText, ...frames].join('\n');
+}
