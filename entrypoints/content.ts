@@ -334,7 +334,7 @@ function showSeenToast(record: JobRecord): void {
   }
   showToast({
     title: "You've seen this job",
-    body: describe(record, `First viewed on ${formatDate(record.firstSeenAt)}.`),
+    body: describe(record, `First viewed on ${formatDateTime(record.firstSeenAt)}.`),
     actions: [
       { label: 'Mark as applied', onClick: () => void markApplied(record, showSeenToast) },
     ],
@@ -364,11 +364,23 @@ function showMarkedToast(viewed: JobRecord, showPrevious: (record: JobRecord) =>
   });
 }
 
+// "Nov 5, 2026"
 function formatDate(timestamp: number): string {
   return new Date(timestamp).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
+  });
+}
+
+// "Nov 5, 2026, 3:07 PM", in the browser's time zone.
+function formatDateTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
   });
 }
 
