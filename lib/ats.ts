@@ -180,3 +180,8 @@ export function parseJobUrl(input: string): ParsedJob | null {
     }
     return null;
 }
+
+// The identity of a job, used as its storage key and to recognise it again.
+export function jobKey(job: ParsedJob): string {
+    return `${job.ats}:${job.company}:${job.jobId}`;
+}

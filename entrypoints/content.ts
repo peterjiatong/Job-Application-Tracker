@@ -1,4 +1,4 @@
-import { normalizeUrl, parseJobUrl } from '@/lib/ats';
+import { jobKey, normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
 import { scan } from '@/lib/keywords';
 import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
@@ -130,7 +130,7 @@ async function handlePage(url: string, fresh: boolean): Promise<void> {
     return;
   }
 
-  const key = `${job.ats}:${job.company}:${job.jobId}`;
+  const key = jobKey(job);
   // sameJob: another page of the job we were already on, e.g. the next step of an application.
   const sameJob = key === currentKey;
   setCurrentKey(key);
