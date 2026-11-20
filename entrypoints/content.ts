@@ -1,4 +1,5 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
+import { readJobInfo } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { dismissToast, isToastOpen, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
@@ -21,7 +22,7 @@ export default defineContentScript({
   main(ctx) {
     currentKey = previousPageKey();
     let handledUrl = location.href;
-    void handlePage(handledUrl);
+    void handlePage(handledUrl, true);
 
     // Single-page apps (Workday) switch pages by changing the URL without loading a new document,
     // so this script does not start again. WXT reports URL changes as an event.
@@ -32,7 +33,7 @@ export default defineContentScript({
       ctx.setTimeout(() => {
         if (location.href === handledUrl) return;
         handledUrl = location.href;
-        void handlePage(handledUrl);
+        void handlePage(handledUrl, false);
       }, 0);
     });
   },
@@ -68,7 +69,9 @@ function previousPageKey(): string | null {
   }
 }
 
-async function handlePage(url: string): Promise<void> {
+// `fresh` is true when the document was loaded with this URL, false when a single-page app
+// changed the URL in place. Only a fresh page describes its own job (see readJobInfo).
+async function handlePage(url: string, fresh: boolean): Promise<void> {
   const job = parseJobUrl(url);
   if (!job) {
     setCurrentKey(null);
@@ -92,10 +95,11 @@ async function handlePage(url: string): Promise<void> {
     }
     if (sameJob && isToastOpen()) return;
 
-    const seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
-    await saveJob(seen);
     await pageSettled();
     if (currentKey !== key) return;
+    let seen: JobRecord = { ...existing, lastSeenAt: Date.now() };
+    if (fresh) seen = withPageInfo(seen);
+    await saveJob(seen);
     // Some sites (Ashby) change the URL in place and then load the page again, so this code runs
     // twice within a moment. A job recorded seconds ago is still a first visit to the user.
     const justRecorded = seen.status === 'viewed' && seen.lastSeenAt - seen.firstSeenAt < 10_000;
@@ -123,20 +127,39 @@ async function handlePage(url: string): Promise<void> {
 
   if (mode === 'manual') {
     await pageSettled();
-    if (currentKey === key) showAskToast(record);
+    if (currentKey === key) showAskToast(fresh ? withPageInfo(record) : record);
     return;
   }
 
+  // Save first, so the visit counts even if the tab is closed right away. The title is added
+  // once the page has settled.
   await saveJob(record);
   await pageSettled();
-  if (currentKey === key) showViewedToast(record);
+  if (currentKey !== key) return;
+  const named = fresh ? withPageInfo(record) : record;
+  if (named !== record) await saveJob(named);
+  showViewedToast(named);
+}
+
+// Adds the title and company name that the page describes itself with. A record that already
+// has a title is left alone.
+function withPageInfo(record: JobRecord): JobRecord {
+  if (record.title) return record;
+  const { title, company } = readJobInfo(document);
+  if (!title && !company) return record;
+  return { ...record, title, company: company ?? record.company };
+}
+
+// Toast text: the job's name on the first line when it is known, then the status line.
+function describe(record: JobRecord, status: string): string {
+  return record.title ? `${record.title} · ${record.company}\n${status}` : status;
 }
 
 // Manual mode, first visit: nothing is saved until the user clicks Record.
 function showAskToast(record: JobRecord): void {
   showToast({
     title: 'Record this job?',
-    body: 'It is not in your tracker yet.',
+    body: describe(record, 'It is not in your tracker yet.'),
     actions: [
       {
         label: 'Record',
@@ -152,7 +175,7 @@ function showAskToast(record: JobRecord): void {
 function showViewedToast(record: JobRecord): void {
   showToast({
     title: 'Job recorded',
-    body: 'Saved as viewed.',
+    body: describe(record, 'Saved as viewed.'),
     actions: [
       { label: 'Undo', onClick: () => void deleteJob(record.key) },
       { label: 'Mark as applied', onClick: () => void markApplied(record, showViewedToast) },
@@ -165,13 +188,13 @@ function showSeenToast(record: JobRecord): void {
   if (record.status === 'applied') {
     showToast({
       title: 'You applied to this job',
-      body: `Applied on ${formatDate(record.appliedAt ?? record.firstSeenAt)}.`,
+      body: describe(record, `Applied on ${formatDate(record.appliedAt ?? record.firstSeenAt)}.`),
     });
     return;
   }
   showToast({
     title: "You've seen this job",
-    body: `First viewed on ${formatDate(record.firstSeenAt)}.`,
+    body: describe(record, `First viewed on ${formatDate(record.firstSeenAt)}.`),
     actions: [
       { label: 'Mark as applied', onClick: () => void markApplied(record, showSeenToast) },
     ],
@@ -186,7 +209,7 @@ async function markApplied(
   await saveJob({ ...record, status: 'applied', appliedAt: Date.now() });
   showToast({
     title: 'Marked as applied',
-    body: 'Saved as applied.',
+    body: describe(record, 'Saved as applied.'),
     actions: [
       {
         label: 'Undo',

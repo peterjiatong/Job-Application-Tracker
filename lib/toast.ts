@@ -23,6 +23,7 @@ const CSS = `
 .body {
     margin-top: 4px;
     color: #57606a;
+    white-space: pre-line;
 }
 .close {
     border: 0;

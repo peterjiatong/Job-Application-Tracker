@@ -88,7 +88,7 @@ URL 只负责**去重键**，这部分是精确的：`(ats, company 标识, jobI
 
 1. 页面里的 JSON-LD `JobPosting` 结构化数据（`hiringOrganization.name`、`title`）。很多 ATS 为了被 Google for Jobs 收录会内嵌它
 2. `og:title` / `og:site_name` 元标签
-3. `document.title`
+3. ~~`document.title`~~ 已放弃：唯一需要它的是 iCIMS，而那里它先是"iCIMS Careers Portal"，之后变成混着地点的长串，存进去比没有更糟
 4. URL 里的公司标识（如 `nvidia`）
 5. 用户在 dashboard 列表里手动改
 
@@ -101,7 +101,7 @@ URL 只负责**去重键**，这部分是精确的：`(ats, company 标识, jobI
 | Ashby | JSON-LD | JSON-LD | 标题带前导空格，需要去掉 |
 | SmartRecruiters | `og:title` | `og:site_name` | 没有 JSON-LD |
 | Workable | JSON-LD | JSON-LD | |
-| iCIMS | `document.title` | URL 标识 | 岗位内容在 iframe 里，顶层页面只有 `document.title`，形如"标题 in 地点 \| Careers at …"，不干净 |
+| iCIMS | 无 | URL 标识 | 岗位内容在 iframe 里，顶层页面读不到标题。记录暂时没有标题，待处理 |
 | Workday | JSON-LD | JSON-LD | 公司名是内部法人实体名（如 `2100 NVIDIA USA`），不如 URL 标识好看 |
 
 **页面内跳转时这些标签是过期的。** Workday 从列表点进岗位时不重新加载页面，JSON-LD 不存在，`og:title` 仍是列表页的"CAREERS AT NVIDIA"，`document.title` 为空。所以这三层只能在"整页加载到这个 URL"时使用，页面内跳转要另找来源（Workday 的标题在 `[data-automation-id="jobPostingHeader"]` 里）。

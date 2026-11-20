@@ -50,7 +50,9 @@ export function parseJobPostingJsonLd(scripts: string[]): JobInfo {
 }
 
 // Reads the job title and company name that the page describes itself with.
-// Order: JSON-LD JobPosting, then Open Graph meta tags, then the page title.
+// Order: JSON-LD JobPosting, then Open Graph meta tags.
+// document.title is deliberately not used: the only site that needed it was iCIMS, where it
+// reads "iCIMS Careers Portal" at first and a title mixed with location text later.
 // Only valid for the URL the document was loaded with: single-page apps (Workday) leave
 // these tags unchanged when the user moves to another job without a page load.
 export function readJobInfo(doc: Document): JobInfo {
@@ -62,7 +64,7 @@ export function readJobInfo(doc: Document): JobInfo {
         text(doc.querySelector<HTMLMetaElement>(`meta[property="${property}"]`)?.content);
 
     return {
-        title: jsonLd.title ?? meta('og:title') ?? text(doc.title),
+        title: jsonLd.title ?? meta('og:title'),
         company: jsonLd.company ?? meta('og:site_name'),
     };
 }
