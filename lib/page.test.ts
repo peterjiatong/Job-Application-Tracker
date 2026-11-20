@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseJobPostingJsonLd } from './page';
+import { isSubmitLabel, parseJobPostingJsonLd } from './page';
 
 const posting = (extra: object = {}) =>
   JSON.stringify({
@@ -62,3 +62,32 @@ describe('parseJobPostingJsonLd', () => {
     expect(parseJobPostingJsonLd([])).toEqual({});
   });
 });
+
+describe('isSubmitLabel', () => {
+  it.each([
+    'Submit application', // Greenhouse, Workable
+    'SUBMIT APPLICATION', // Lever
+    'Submit Application', // Ashby
+    'Submit', // Workday
+    '  Submit\n  application ',
+    'Submit your application',
+    'Send application',
+  ])('accepts "%s"', (label) => {
+    expect(isSubmitLabel(label)).toBe(true);
+  });
+
+  it.each([
+    'Apply',
+    'Apply for this job',
+    'Autofill my application', // Greenhouse
+    'Save and Continue', // Workday, earlier steps
+    'Next',
+    'Sign In',
+    'Resubmit', // not the word "submit"
+    '',
+    'By clicking submit you agree to the terms and conditions of this website', // not a button label
+  ])('rejects "%s"', (label) => {
+    expect(isSubmitLabel(label)).toBe(false);
+  });
+});
+

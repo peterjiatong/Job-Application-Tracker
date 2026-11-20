@@ -1,7 +1,7 @@
 import { normalizeUrl, parseJobUrl } from '@/lib/ats';
 import type { ParsedJob } from '@/lib/ats';
 import { DEFAULT_RULES, scan } from '@/lib/keywords';
-import { pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
+import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
 import { deleteJob, getJob, getSettings, saveJob } from '@/lib/store';
 import { dismissToast, isToastOpen, setToastWarnings, showToast } from '@/lib/toast';
 import type { JobRecord } from '@/lib/types';
@@ -38,6 +38,9 @@ export default defineContentScript({
         void handlePage(handledUrl, false);
       }, 0);
     });
+
+    // Capture phase: the page's own code may stop the click from reaching `document` otherwise.
+    ctx.addEventListener(document, 'click', (event) => void onPageClick(event), true);
   },
 });
 
@@ -68,6 +71,52 @@ function previousPageKey(): string | null {
     return sessionStorage.getItem(SESSION_KEY);
   } catch {
     return null; // No referrer, or the site blocks storage.
+  }
+}
+
+const AUTO_APPLIED_KEY = 'jat:autoApplied';
+
+// Auto mode: clicking a button that submits the application marks the job as applied.
+// The click only shows intent. If the form then refuses to submit, the toast with Undo is
+// still on screen.
+// ponytail: buttons inside frames (iCIMS) are not seen; run the script in all frames if needed.
+async function onPageClick(event: Event): Promise<void> {
+  const key = currentKey;
+  if (!key || !isSubmitLabel(clickedLabel(event))) return;
+  if ((await getSettings()).mode !== 'auto') return;
+  const record = await getJob(key);
+  if (!record || record.status === 'applied') return;
+
+  // A successful submit usually moves to a confirmation page right away, taking the toast with
+  // it. Leave a note so that page can say what happened.
+  try {
+    sessionStorage.setItem(AUTO_APPLIED_KEY, key);
+  } catch {
+    // The site blocks storage. The job is still marked, just without a notice on the next page.
+  }
+  await markApplied(record, showSeenToast);
+}
+
+// The text of the button or link that was clicked, or '' if the click was on something else.
+function clickedLabel(event: Event): string {
+  for (const node of event.composedPath()) {
+    if (!(node instanceof HTMLElement)) continue;
+    if (node.id === 'jat-toast') return ''; // our own buttons
+    if (node.matches('button, input[type="submit"], input[type="button"], [role="button"], a')) {
+      return node.innerText || (node as HTMLInputElement).value || node.ariaLabel || '';
+    }
+  }
+  return '';
+}
+
+// True once, on the first page after onPageClick marked this job.
+function takeAutoAppliedNote(key: string): boolean {
+  try {
+    if (sessionStorage.getItem(AUTO_APPLIED_KEY) !== key) return false;
+    sessionStorage.removeItem(AUTO_APPLIED_KEY);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -121,7 +170,17 @@ async function showJob(
     // On later pages of the same job, keep offering "Mark as applied" while the job is only
     // viewed. Once it is applied, stay quiet.
     if (sameJob && existing.status === 'applied') {
-      dismissToast();
+      // The exception: this is the page right after a submit click marked the job. Say so once,
+      // with a way to undo it.
+      if (!takeAutoAppliedNote(key)) {
+        dismissToast();
+        return;
+      }
+      if (isToastOpen()) return;
+      await pageSettled();
+      if (currentKey !== key) return;
+      const { appliedAt: _appliedAt, ...rest } = existing;
+      showMarkedToast({ ...rest, status: 'viewed' }, showSeenToast);
       return;
     }
     if (sameJob && isToastOpen()) return;
@@ -285,14 +344,18 @@ async function markApplied(
   showPrevious: (record: JobRecord) => void,
 ): Promise<void> {
   await saveWithFlags({ ...record, status: 'applied', appliedAt: Date.now() });
+  showMarkedToast(record, showPrevious);
+}
+
+// `viewed` is the record as it was before it was marked, so saving it again undoes the change.
+function showMarkedToast(viewed: JobRecord, showPrevious: (record: JobRecord) => void): void {
   showToast({
     title: 'Marked as applied',
-    body: describe(record, 'Saved as applied.'),
+    body: describe(viewed, 'Saved as applied.'),
     actions: [
       {
         label: 'Undo',
-        // `record` is still the viewed version, so saving it again undoes the change.
-        onClick: () => void saveWithFlags(record).then(() => showPrevious(record)),
+        onClick: () => void saveWithFlags(viewed).then(() => showPrevious(viewed)),
       },
     ],
   });

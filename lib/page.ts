@@ -114,3 +114,11 @@ export function pageText(doc: Document): string {
     });
     return [doc.body.innerText, ...frames].join('\n');
 }
+
+// Whether a button's text says that clicking it submits a job application.
+// Greenhouse, Lever, Ashby and Workable all use "Submit application"; Workday uses "Submit".
+export function isSubmitLabel(label: string): boolean {
+    const words = label.trim().replace(/\s+/g, ' ');
+    if (words.length === 0 || words.length > 40) return false;
+    return /\bsubmit\b|\b(send|complete)\s+(my\s+|your\s+)?application\b/i.test(words);
+}
