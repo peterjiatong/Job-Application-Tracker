@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isSubmitLabel, parseJobPostingJsonLd } from './page';
+import { isGithubDocumentPath, isSubmitLabel, parseJobPostingJsonLd } from './page';
 
 const posting = (extra: object = {}) =>
   JSON.stringify({
@@ -88,6 +88,35 @@ describe('isSubmitLabel', () => {
     'By clicking submit you agree to the terms and conditions of this website', // not a button label
   ])('rejects "%s"', (label) => {
     expect(isSubmitLabel(label)).toBe(false);
+  });
+});
+
+describe('isGithubDocumentPath', () => {
+  it.each([
+    '/speedyapply/2027-SWE-College-Jobs',
+    '/speedyapply/2027-SWE-College-Jobs/',
+    '/speedyapply/2027-SWE-College-Jobs/tree/main',
+    '/speedyapply/2027-SWE-College-Jobs/tree/main/.github',
+    '/speedyapply/2027-SWE-College-Jobs/blob/main/NEW_GRAD_USA.md',
+    '/owner/repo/blob/main/docs/Guide.MD',
+    '/owner/repo/blob/main/notes.markdown',
+  ])('accepts %s', (path) => {
+    expect(isGithubDocumentPath(path)).toBe(true);
+  });
+
+  it.each([
+    '/owner/repo/issues',
+    '/owner/repo/issues/12',
+    '/owner/repo/pull/34',
+    '/owner/repo/discussions/5',
+    '/owner/repo/releases',
+    '/owner/repo/wiki',
+    '/owner/repo/blob/main/src/index.ts',
+    '/owner/repo/blob/main/md', // a file called "md", not a Markdown file
+    '/owner',
+    '/',
+  ])('rejects %s', (path) => {
+    expect(isGithubDocumentPath(path)).toBe(false);
   });
 });
 

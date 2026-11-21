@@ -133,3 +133,13 @@ export function isSubmitLabel(label: string): boolean {
     if (words.length === 0 || words.length > 40) return false;
     return /\bsubmit\b|\b(send|complete)\s+(my\s+|your\s+)?application\b/i.test(words);
 }
+
+// Whether a github.com path is a page that shows a rendered document: a repository's front page
+// or one of its folders (both show the README), or a Markdown file. Issues, pull requests,
+// discussions, releases and wikis also render Markdown, and are deliberately left out.
+export function isGithubDocumentPath(pathname: string): boolean {
+    const [owner, repo, view, ...rest] = pathname.split('/').filter(Boolean);
+    if (!owner || !repo) return false;
+    if (view === undefined || view === 'tree') return true;
+    return view === 'blob' && /\.(md|markdown|mdx)$/i.test(rest.at(-1) ?? '');
+}

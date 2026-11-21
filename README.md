@@ -45,7 +45,7 @@ Jobs are recorded on these application sites:
 
 Company names are highlighted on those sites and on LinkedIn, Indeed, Glassdoor, Handshake and ZipRecruiter. No jobs are recorded on the job boards themselves; they keep their own history of what you applied to.
 
-They are also highlighted in job lists kept as GitHub repositories, such as the new-grad and internship tables many people apply from. On GitHub only rendered Markdown (a README or a `.md` file) is looked at, never source code or the rest of the site.
+They are also highlighted in job lists kept as GitHub repositories, such as the new-grad and internship tables many people apply from. On GitHub only the rendered document on a repository's front page, in a folder, or in a `.md` file is looked at. Issues, pull requests, source files and code samples inside a document are left alone.
 
 A job on any other site can be recorded by hand: open the toolbar popup and choose **Record this page**, or paste its address on the dashboard.
 

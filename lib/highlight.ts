@@ -4,7 +4,9 @@ import type { CompanyList, HighlightColors } from './companies';
 // Name under which the ranges of one list are registered with the browser.
 const highlightName = (list: CompanyList) => `jat-${list}`;
 
-const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA']);
+// Text inside these is never marked: it is not shown as text, or it is code, where a company
+// name is just a word ("meta" in `import.meta.env`).
+const SKIPPED = 'script, style, noscript, textarea, pre, code';
 
 // Marks every match of each list's pattern in the page's text, replacing the marks from the
 // last call. A null pattern only clears that list's marks. Returns the number of matches.
@@ -21,13 +23,15 @@ export function highlightText(
     if (typeof Highlight === 'undefined' || !CSS.highlights) return 0; // older browser
     for (const list of COMPANY_LISTS) CSS.highlights.delete(highlightName(list));
     if (COMPANY_LISTS.every((list) => !patterns[list])) return 0;
+    // A root inside another root would have its text looked at twice.
+    roots = roots.filter((root) => !roots.some((other) => other !== root && other.contains(root)));
 
     const ranges: Record<CompanyList, Range[]> = { avoid: [], interested: [] };
     for (const root of roots) {
         const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
         for (let node = walker.nextNode(); node; node = walker.nextNode()) {
             const text = node.nodeValue ?? '';
-            if (text.length < 2 || SKIPPED_TAGS.has(node.parentElement?.tagName ?? '')) continue;
+            if (!text.trim() || node.parentElement?.closest(SKIPPED)) continue;
             for (const list of COMPANY_LISTS) {
                 const pattern = patterns[list];
                 if (!pattern) continue;

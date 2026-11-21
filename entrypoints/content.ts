@@ -7,7 +7,14 @@ import { formatDate, formatDateTime } from '@/lib/format';
 import { highlightText, setHighlightColors } from '@/lib/highlight';
 import { categoryLabel, setLanguage, t } from '@/lib/i18n';
 import { scan } from '@/lib/keywords';
-import { isSubmitLabel, pageQuiet, pageText, readJobInfo, readWorkdayTitle } from '@/lib/page';
+import {
+  isGithubDocumentPath,
+  isSubmitLabel,
+  pageQuiet,
+  pageText,
+  readJobInfo,
+  readWorkdayTitle,
+} from '@/lib/page';
 import {
   deleteJob,
   getCompanyLists,
@@ -97,20 +104,35 @@ async function highlightCompanies(): Promise<void> {
   onSettingsChanged(() => void reload());
 
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let waitingSince = 0;
   new MutationObserver(() => {
     if (!patterns.avoid && !patterns.interested) return;
-    // ponytail: scans the whole page again half a second after the last change. Scan only the
-    // changed parts if this ever shows up as slow on very long pages.
+    // Scan again half a second after the page stops changing, but never later than two seconds
+    // after the first change: some pages never stop (a ticking counter, a live feed).
+    // ponytail: scans the whole page each time. Scan only the changed parts if this ever shows
+    // up as slow on very long pages.
+    const now = Date.now();
+    if (timer === undefined) waitingSince = now;
     clearTimeout(timer);
-    timer = setTimeout(() => highlightText(document, patterns, highlightRoots()), 500);
+    timer = setTimeout(
+      () => {
+        timer = undefined;
+        highlightText(document, patterns, highlightRoots());
+      },
+      Math.max(0, Math.min(500, waitingSince + 2000 - now)),
+    );
   }).observe(document, { childList: true, subtree: true, characterData: true });
 }
 
-// The parts of the page to look for company names in. On GitHub that is only rendered Markdown
-// (a README or a job-list file), so that source code, file lists and the rest of the site are
-// left alone. Everywhere else it is the whole page.
+// The parts of the page to look for company names in. On GitHub that is only the rendered
+// document on a repository's front page, a folder or a Markdown file (a README or a job list).
+// Issues, pull requests and the rest of the site are left alone, and so is source code.
+// Everywhere else it is the whole page.
 function highlightRoots(): Element[] {
-  if (location.hostname === 'github.com') return [...document.querySelectorAll('.markdown-body')];
+  if (location.hostname === 'github.com') {
+    if (!isGithubDocumentPath(location.pathname)) return [];
+    return [...document.querySelectorAll('.markdown-body')];
+  }
   return document.body ? [document.body] : [];
 }
 
