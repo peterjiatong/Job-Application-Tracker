@@ -8,28 +8,35 @@ const SKIPPED_TAGS = new Set(['SCRIPT', 'STYLE', 'NOSCRIPT', 'TEXTAREA']);
 
 // Marks every match of each list's pattern in the page's text, replacing the marks from the
 // last call. A null pattern only clears that list's marks. Returns the number of matches.
+// `roots` limits the search to parts of the page; by default it is the whole page.
 //
 // Uses the CSS Custom Highlight API: the browser paints the ranges, and the page's own elements
 // are not touched. Wrapping matches in <mark> elements instead would break pages built with
 // React, which expect their elements to stay as they made them.
-export function highlightText(doc: Document, patterns: Record<CompanyList, RegExp | null>): number {
+export function highlightText(
+    doc: Document,
+    patterns: Record<CompanyList, RegExp | null>,
+    roots: Element[] = doc.body ? [doc.body] : [],
+): number {
     if (typeof Highlight === 'undefined' || !CSS.highlights) return 0; // older browser
     for (const list of COMPANY_LISTS) CSS.highlights.delete(highlightName(list));
-    if (!doc.body || COMPANY_LISTS.every((list) => !patterns[list])) return 0;
+    if (COMPANY_LISTS.every((list) => !patterns[list])) return 0;
 
     const ranges: Record<CompanyList, Range[]> = { avoid: [], interested: [] };
-    const walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-        const text = node.nodeValue ?? '';
-        if (text.length < 2 || SKIPPED_TAGS.has(node.parentElement?.tagName ?? '')) continue;
-        for (const list of COMPANY_LISTS) {
-            const pattern = patterns[list];
-            if (!pattern) continue;
-            for (const match of text.matchAll(pattern)) {
-                const range = doc.createRange();
-                range.setStart(node, match.index);
-                range.setEnd(node, match.index + match[0].length);
-                ranges[list].push(range);
+    for (const root of roots) {
+        const walker = doc.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+            const text = node.nodeValue ?? '';
+            if (text.length < 2 || SKIPPED_TAGS.has(node.parentElement?.tagName ?? '')) continue;
+            for (const list of COMPANY_LISTS) {
+                const pattern = patterns[list];
+                if (!pattern) continue;
+                for (const match of text.matchAll(pattern)) {
+                    const range = doc.createRange();
+                    range.setStart(node, match.index);
+                    range.setEnd(node, match.index + match[0].length);
+                    ranges[list].push(range);
+                }
             }
         }
     }

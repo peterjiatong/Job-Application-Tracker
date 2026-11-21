@@ -134,7 +134,7 @@ const en = {
     'interested.title': 'Companies I am interested in',
     'avoid.enable': 'Highlight these companies on web pages',
     'avoid.enable.hint':
-        'Works on LinkedIn, Indeed, Glassdoor, Handshake, ZipRecruiter and the supported application sites. Upper and lower case do not matter, and a name only matches as whole words. A company is on one list at a time.',
+        'Works on LinkedIn, Indeed, Glassdoor, Handshake, ZipRecruiter, job lists on GitHub and the supported application sites. Upper and lower case do not matter, and a name only matches as whole words. A company is on one list at a time.',
     'companies.color': 'Highlight colour',
     'companies.resetColors': 'Use the default colours',
     'avoid.placeholder': 'Company names, one per line',
@@ -285,7 +285,7 @@ const zh: Record<MessageKey, string> = {
     'interested.title': '感兴趣的公司',
     'avoid.enable': '在网页上高亮这些公司',
     'avoid.enable.hint':
-        '在 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter 以及受支持的招聘系统网站上生效。不区分大小写，英文名称只匹配完整的词。一家公司同一时间只在一个名单里。',
+        '在 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter、GitHub 上的岗位列表以及受支持的招聘系统网站上生效。不区分大小写，英文名称只匹配完整的词。一家公司同一时间只在一个名单里。',
     'companies.color': '高亮颜色',
     'companies.resetColors': '恢复默认颜色',
     'avoid.placeholder': '公司名称，每行一个',

@@ -19,7 +19,7 @@ All of those listings lead to the same application page on an applicant tracking
 - **Records automatically or asks first.** In automatic mode a job is recorded when you open it. In manual mode the extension asks.
 - **Marks jobs as applied.** One click in the box, or automatically when you click the form's "Submit application" button. Either can be undone.
 - **Warns about restrictions.** It scans the job description for citizenship, security clearance and visa sponsorship requirements and quotes the sentence it found, so you can judge for yourself. The rules are regular expressions you can edit.
-- **Highlights companies on job boards.** Keep one list of companies you are not interested in and one of companies you are. Their names are highlighted on LinkedIn, Indeed and the other supported sites, in colours you choose. Add a company from the toolbar popup, by selecting its name and right-clicking, or by pasting a list.
+- **Highlights companies on job boards.** Keep one list of companies you are not interested in and one of companies you are. Their names are highlighted on LinkedIn, Indeed, job lists kept on GitHub and the other supported sites, in colours you choose. Add a company from the toolbar popup, by selecting its name and right-clicking, or by pasting a list.
 - **Dashboard.** Applications per day over the last year, totals, a searchable and editable list of every recorded job, and export to JSON or CSV.
 - **English and Chinese.** Follows the browser's language, or pick one in the settings.
 
@@ -44,6 +44,8 @@ Jobs are recorded on these application sites:
 | Workable | `apply.workable.com` |
 
 Company names are highlighted on those sites and on LinkedIn, Indeed, Glassdoor, Handshake and ZipRecruiter. No jobs are recorded on the job boards themselves; they keep their own history of what you applied to.
+
+They are also highlighted in job lists kept as GitHub repositories, such as the new-grad and internship tables many people apply from. On GitHub only rendered Markdown (a README or a `.md` file) is looked at, never source code or the rest of the site.
 
 A job on any other site can be recorded by hand: open the toolbar popup and choose **Record this page**, or paste its address on the dashboard.
 
@@ -98,7 +100,7 @@ Permissions it asks for, and why:
 | `storage` | Saving your records, lists and settings in the browser |
 | `activeTab` | Letting the toolbar popup read the address of the tab you opened it on |
 | `contextMenus` | The right-click entries for marking a company |
-| Access to the sites listed above | Reading the job id and description on application sites, and highlighting company names on job boards |
+| Access to the sites listed above, and to `github.com` | Reading the job id and description on application sites, and highlighting company names on job boards and in job lists on GitHub |
 
 It does not ask for access to all websites.
 

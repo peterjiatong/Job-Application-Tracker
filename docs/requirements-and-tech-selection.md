@@ -145,6 +145,7 @@ type JobRecord = {
 - **隐私**：零网络请求，数据不出浏览器。这同时是商店审核和用户信任的核心
 - **最小权限**：只申请 `storage`、`activeTab` 和上表 ATS 域名的主机权限。不要 `tabs`，不要 `<all_urls>`
   - 2026-11-20 更新：为了 F16 的高亮，内容脚本增加了 LinkedIn、Indeed、Glassdoor、Handshake、ZipRecruiter 五个招聘平台（用户在"这几个平台 / 所有网站 / 逐个开启"三个方案里选了第一个）。在这些平台上只做高亮，不记录岗位。另增加 `contextMenus`（右键菜单）和 `activeTab`。仍然不要 `tabs`，不要 `<all_urls>`
+  - 2026-11-20 再次更新：增加 `https://github.com/*`，用于在 GitHub 仓库形式的岗位列表里高亮公司名。只处理渲染出来的 Markdown
 - **性能**：注入页面的脚本不带任何 UI 框架；每个页面只扫描一次文本
 - **健壮性**：URL 解析失败时静默，不打扰用户
 - **跨浏览器**：Chrome 与 Firefox 同一套代码

@@ -47,6 +47,8 @@ export default defineContentScript({
     'https://*.glassdoor.com/*',
     'https://*.joinhandshake.com/*',
     'https://www.ziprecruiter.com/*',
+    // Job lists kept as GitHub repositories (a README with a table of openings).
+    'https://github.com/*',
   ],
   main(ctx) {
     void highlightCompanies();
@@ -88,7 +90,7 @@ async function highlightCompanies(): Promise<void> {
       interested: on ? companyPattern(lists.interested) : null,
     };
     setHighlightColors(document, settings.highlightColors);
-    highlightText(document, patterns);
+    highlightText(document, patterns, highlightRoots());
   };
   await reload();
   onCompaniesChanged(() => void reload());
@@ -100,8 +102,16 @@ async function highlightCompanies(): Promise<void> {
     // ponytail: scans the whole page again half a second after the last change. Scan only the
     // changed parts if this ever shows up as slow on very long pages.
     clearTimeout(timer);
-    timer = setTimeout(() => highlightText(document, patterns), 500);
+    timer = setTimeout(() => highlightText(document, patterns, highlightRoots()), 500);
   }).observe(document, { childList: true, subtree: true, characterData: true });
+}
+
+// The parts of the page to look for company names in. On GitHub that is only rendered Markdown
+// (a README or a job-list file), so that source code, file lists and the rest of the site are
+// left alone. Everywhere else it is the whole page.
+function highlightRoots(): Element[] {
+  if (location.hostname === 'github.com') return [...document.querySelectorAll('.markdown-body')];
+  return document.body ? [document.body] : [];
 }
 
 const SESSION_KEY = 'jat:currentJob';
