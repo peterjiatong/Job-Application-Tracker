@@ -4,6 +4,8 @@
 
 一个浏览器扩展：记住你看过和申请过哪些岗位，不再把同一个岗位点开两遍。所有数据都留在你自己的浏览器里。
 
+**[下载最新构建](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip)** · [安装方法](#安装)
+
 ## 它解决什么问题
 
 同一个岗位会同时出现在 LinkedIn、Indeed、Handshake 和公司自己的招聘页上。只看列表，你分不清两条是同一个岗位，还是只是名字一样，只能点进去把职位描述再读一遍。
@@ -51,7 +53,7 @@
 
 ### 下载最新构建
 
-1. 下载 [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip)。仓库每次有改动都会自动重新构建它。
+1. 下载 [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip)。仓库每次有改动后都会自动测试并重新构建，所以它始终是最新版本。旧的构建不保留。
 2. 解压，把解压出的文件夹放到一个不会再移动的位置。
 3. 打开 `chrome://extensions`。
 4. 打开右上角的 **开发者模式**。
@@ -121,6 +123,8 @@ pnpm compile    # 类型检查
 pnpm build      # 正式构建，输出到 .output/chrome-mv3
 pnpm release    # 构建并复制到 release/，用于手动加载
 ```
+
+每次推送到 `main`，GitHub Actions 都会运行类型检查和测试，通过后发布上面下载链接指向的 zip（见 `.github/workflows/build.yml`）。
 
 使用 [WXT](https://wxt.dev)、TypeScript 和 React 构建。岗位页面上的弹框是放在 Shadow DOM 里的原生 DOM，不会给你访问的网页带入任何框架。
 

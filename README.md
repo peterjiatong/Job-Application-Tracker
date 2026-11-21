@@ -4,6 +4,8 @@ English | [简体中文](README.zh-CN.md)
 
 A browser extension that remembers which job postings you have already viewed or applied to, so you stop opening the same job twice. Everything stays in your browser.
 
+**[Download the latest build](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip)** · [How to install it](#install)
+
 ## The problem
 
 The same job shows up on LinkedIn, Indeed, Handshake and the company's own careers page. From the listings alone you cannot tell whether two of them are the same posting or just share a title, so you click through and read the description again.
@@ -51,7 +53,7 @@ The extension is not in the Chrome Web Store or on Firefox Add-ons yet. For now 
 
 ### Download the latest build
 
-1. Download [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip). It is rebuilt automatically from every change to this repository.
+1. Download [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip). It is built and tested automatically after every change to this repository, so it is always the newest version. Earlier builds are not kept.
 2. Unzip it, and put the folder somewhere it can stay.
 3. Open `chrome://extensions`.
 4. Turn on **Developer mode** in the top-right corner.
@@ -121,6 +123,8 @@ pnpm compile    # type-check
 pnpm build      # production build in .output/chrome-mv3
 pnpm release    # build and copy to release/ for loading by hand
 ```
+
+Every push to `main` runs the type-check and the tests on GitHub Actions and, if they pass, publishes the zip that the download link above points to (`.github/workflows/build.yml`).
 
 Built with [WXT](https://wxt.dev), TypeScript and React. The box shown on job pages is plain DOM inside a shadow root, so it adds no framework to the pages you visit.
 
