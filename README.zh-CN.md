@@ -47,7 +47,21 @@
 
 ## 安装
 
-目前还没有上架 Chrome 应用商店和 Firefox 附加组件商店，需要从源码构建，然后加载到 Chrome 或其他 Chromium 内核的浏览器（Edge、Brave、Arc）。
+目前还没有上架 Chrome 应用商店和 Firefox 附加组件商店，需要手动加载到 Chrome 或其他 Chromium 内核的浏览器（Edge、Brave、Arc）。
+
+### 下载最新构建
+
+1. 下载 [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip)。仓库每次有改动都会自动重新构建它。
+2. 解压，把解压出的文件夹放到一个不会再移动的位置。
+3. 打开 `chrome://extensions`。
+4. 打开右上角的 **开发者模式**。
+5. 点击 **加载已解压的扩展程序**，选择解压出的文件夹。
+
+不要移动这个文件夹。浏览器靠文件夹的位置来识别未打包的扩展，移动之后它会被当成另一个扩展，原来的记录就看不到了。
+
+Chrome 不能直接安装 zip 文件，这样加载的扩展也不会自动更新。更新时重新下载 zip，用里面的内容替换同一个文件夹里的内容，然后在 `chrome://extensions` 里点扩展卡片上的刷新箭头。记录会保留。
+
+### 或者从源码构建
 
 需要 [Node.js](https://nodejs.org) 22 或更高版本，以及 [pnpm](https://pnpm.io)。
 
@@ -58,15 +72,7 @@ pnpm install
 pnpm release
 ```
 
-然后：
-
-1. 打开 `chrome://extensions`。
-2. 打开右上角的 **开发者模式**。
-3. 点击 **加载已解压的扩展程序**，选择 `release/job-application-tracker-chrome` 文件夹。
-
-不要移动这个文件夹。浏览器靠文件夹的位置来识别未打包的扩展，移动之后它会被当成另一个扩展，原来的记录就看不到了。
-
-更新时拉取新代码，再运行一次 `pnpm release`，然后在 `chrome://extensions` 里点扩展卡片上的刷新箭头。
+然后按上面的第 3 到 5 步加载 `release/job-application-tracker-chrome` 文件夹。更新时拉取新代码，再运行一次 `pnpm release`，然后点刷新箭头。
 
 Firefox 版本（`pnpm build:firefox`）尚未测试。
 

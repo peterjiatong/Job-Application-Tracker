@@ -47,7 +47,21 @@ A job on any other site can be recorded by hand: open the toolbar popup and choo
 
 ## Install
 
-The extension is not in the Chrome Web Store or on Firefox Add-ons yet. For now it is built from source and loaded into Chrome or another Chromium browser (Edge, Brave, Arc).
+The extension is not in the Chrome Web Store or on Firefox Add-ons yet. For now it is loaded by hand into Chrome or another Chromium browser (Edge, Brave, Arc).
+
+### Download the latest build
+
+1. Download [job-application-tracker-chrome.zip](https://github.com/peterjiatong/Job-Application-Tracker/releases/latest/download/job-application-tracker-chrome.zip). It is rebuilt automatically from every change to this repository.
+2. Unzip it, and put the folder somewhere it can stay.
+3. Open `chrome://extensions`.
+4. Turn on **Developer mode** in the top-right corner.
+5. Click **Load unpacked** and choose the unzipped folder.
+
+Leave that folder where it is. The browser identifies an unpacked extension by its location, and moving the folder makes it look like a different extension with empty storage.
+
+Chrome cannot install the zip file itself, and an extension loaded this way does not update on its own. To update, download the zip again, replace the contents of the same folder with it, and click the reload arrow on the extension's card in `chrome://extensions`. Your records are kept.
+
+### Or build it from source
 
 You need [Node.js](https://nodejs.org) 22 or newer and [pnpm](https://pnpm.io).
 
@@ -58,15 +72,7 @@ pnpm install
 pnpm release
 ```
 
-Then:
-
-1. Open `chrome://extensions`.
-2. Turn on **Developer mode** in the top-right corner.
-3. Click **Load unpacked** and choose the folder `release/job-application-tracker-chrome`.
-
-Leave that folder where it is. The browser identifies an unpacked extension by its location, and moving the folder makes it look like a different extension with empty storage.
-
-To update, pull the new code, run `pnpm release` again, and click the reload arrow on the extension's card in `chrome://extensions`.
+Then load the folder `release/job-application-tracker-chrome` as in steps 3 to 5 above. To update, pull the new code, run `pnpm release` again, and click the reload arrow.
 
 Firefox builds (`pnpm build:firefox`) have not been tested yet.
 
